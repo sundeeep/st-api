@@ -11,13 +11,13 @@ export const getUserById = async (id: string): Promise<User> => {
     const [user] = await db.select().from(users).where(eq(users.id, id));
 
     if (!user) {
-      throw new NotFoundError(`User with ID ${id} not found`);
+      throw NotFoundError(`User with ID ${id} not found`);
     }
 
     return user;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
-    throw new DatabaseError("Failed to fetch user", error);
+    throw DatabaseError("Failed to fetch user", error);
   }
 };
 
@@ -29,7 +29,7 @@ export const getUserByPhone = async (phoneNumber: string): Promise<User | null> 
     const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
     return user || null;
   } catch (error) {
-    throw new DatabaseError("Failed to fetch user by phone", error);
+    throw DatabaseError("Failed to fetch user by phone", error);
   }
 };
 
@@ -41,7 +41,7 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || null;
   } catch (error) {
-    throw new DatabaseError("Failed to fetch user by email", error);
+    throw DatabaseError("Failed to fetch user by email", error);
   }
 };
 
@@ -57,13 +57,13 @@ export const updateUser = async (id: string, userData: Partial<NewUser>): Promis
       .returning();
 
     if (!updatedUser) {
-      throw new NotFoundError(`User with ID ${id} not found`);
+      throw NotFoundError(`User with ID ${id} not found`);
     }
 
     return updatedUser;
   } catch (error) {
     if (error instanceof NotFoundError) throw error;
-    throw new DatabaseError("Failed to update user", error);
+    throw DatabaseError("Failed to update user", error);
   }
 };
 
@@ -75,6 +75,6 @@ export const emailExists = async (email: string): Promise<boolean> => {
     const user = await getUserByEmail(email);
     return !!user;
   } catch (error) {
-    throw new DatabaseError("Failed to check email existence", error);
+    throw DatabaseError("Failed to check email existence", error);
   }
 };

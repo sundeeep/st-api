@@ -12,11 +12,12 @@ export const generateOTP = (): string => {
 
 /**
  * Hash OTP using Bun's built-in password hashing
+ * Using cost 4 for OTPs (fast, still secure for 5-min expiry)
  */
 export const hashOTP = async (otp: string): Promise<string> => {
   return await Bun.password.hash(otp, {
     algorithm: "bcrypt",
-    cost: 10,
+    cost: 4,
   });
 };
 

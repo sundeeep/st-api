@@ -1,5 +1,6 @@
 import { pgTable, varchar, timestamp, uuid, boolean, integer } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { domains } from "./domains.schema";
 
 /**
  * Users table schema
@@ -12,7 +13,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   password: varchar("password", { length: 255 }),
-  domain: varchar("domain", { length: 100 }),
+  domainId: uuid("domain_id").references(() => domains.id),
   onboardingComplete: boolean("onboarding_complete").default(false).notNull(),
   onboardingStep: integer("onboarding_step").default(0).notNull(),
   isActive: boolean("is_active").default(true).notNull(),

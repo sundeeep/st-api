@@ -1,109 +1,49 @@
 import { ErrorCode, HttpStatus } from "../types/response.types";
 
 /**
- * Base custom error class
+ * Create error with status code and error code
  */
-export class AppError extends Error {
-  public readonly statusCode: number;
-  public readonly errorCode: ErrorCode;
-  public readonly details?: any;
-  public readonly isOperational: boolean;
+export const createError = (
+  message: string,
+  statusCode: HttpStatus,
+  errorCode: ErrorCode,
+  details?: any
+) => {
+  const error = new Error(message) as any;
+  error.statusCode = statusCode;
+  error.errorCode = errorCode;
+  error.details = details;
+  return error;
+};
 
-  constructor(
-    message: string,
-    statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR,
-    errorCode: ErrorCode = ErrorCode.INTERNAL_ERROR,
-    details?: any,
-    isOperational: boolean = true
-  ) {
-    super(message);
-    this.statusCode = statusCode;
-    this.errorCode = errorCode;
-    this.details = details;
-    this.isOperational = isOperational;
+// Validation error (400)
+export const ValidationError = (message: string, details?: any) =>
+  createError(message, HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, details);
 
-    // Maintains proper stack trace for where our error was thrown
-    Error.captureStackTrace(this, this.constructor);
-    Object.setPrototypeOf(this, AppError.prototype);
-  }
-}
+// Not found error (404)
+export const NotFoundError = (message: string, details?: any) =>
+  createError(message, HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, details);
 
-/**
- * Validation error (400)
- */
-export class ValidationError extends AppError {
-  constructor(message: string = "Validation failed", details?: any) {
-    super(message, HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION_ERROR, details);
-    Object.setPrototypeOf(this, ValidationError.prototype);
-  }
-}
+// Unauthorized error (401)
+export const UnauthorizedError = (message: string, details?: any) =>
+  createError(message, HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, details);
 
-/**
- * Not found error (404)
- */
-export class NotFoundError extends AppError {
-  constructor(message: string = "Resource not found", details?: any) {
-    super(message, HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, details);
-    Object.setPrototypeOf(this, NotFoundError.prototype);
-  }
-}
+// Forbidden error (403)
+export const ForbiddenError = (message: string, details?: any) =>
+  createError(message, HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, details);
 
-/**
- * Unauthorized error (401)
- */
-export class UnauthorizedError extends AppError {
-  constructor(message: string = "Unauthorized access", details?: any) {
-    super(message, HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, details);
-    Object.setPrototypeOf(this, UnauthorizedError.prototype);
-  }
-}
+// Conflict error (409)
+export const ConflictError = (message: string, details?: any) =>
+  createError(message, HttpStatus.CONFLICT, ErrorCode.CONFLICT, details);
 
-/**
- * Forbidden error (403)
- */
-export class ForbiddenError extends AppError {
-  constructor(message: string = "Access forbidden", details?: any) {
-    super(message, HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, details);
-    Object.setPrototypeOf(this, ForbiddenError.prototype);
-  }
-}
+// Bad request error (400)
+export const BadRequestError = (message: string, details?: any) =>
+  createError(message, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, details);
 
-/**
- * Conflict error (409)
- */
-export class ConflictError extends AppError {
-  constructor(message: string = "Resource conflict", details?: any) {
-    super(message, HttpStatus.CONFLICT, ErrorCode.CONFLICT, details);
-    Object.setPrototypeOf(this, ConflictError.prototype);
-  }
-}
+// Database error (500)
+export const DatabaseError = (message: string, details?: any) =>
+  createError(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.DATABASE_ERROR, details);
 
-/**
- * Bad request error (400)
- */
-export class BadRequestError extends AppError {
-  constructor(message: string = "Bad request", details?: any) {
-    super(message, HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, details);
-    Object.setPrototypeOf(this, BadRequestError.prototype);
-  }
-}
-
-/**
- * Database error (500)
- */
-export class DatabaseError extends AppError {
-  constructor(message: string = "Database operation failed", details?: any) {
-    super(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.DATABASE_ERROR, details);
-    Object.setPrototypeOf(this, DatabaseError.prototype);
-  }
-}
-
-/**
- * Internal server error (500)
- */
-export class InternalServerError extends AppError {
-  constructor(message: string = "Internal server error", details?: any) {
-    super(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, details);
-    Object.setPrototypeOf(this, InternalServerError.prototype);
-  }
-}
+// Internal server error (500)
+export const InternalServerError = (message: string, details?: any) =>
+  createError(message, HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, details);

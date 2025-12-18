@@ -39,17 +39,17 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
 
     // Check expiration
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      throw new UnauthorizedError("Token expired");
+      throw UnauthorizedError("Token expired");
     }
 
     if (!payload.userId || !payload.phoneNumber) {
-      throw new UnauthorizedError("Invalid token payload");
+      throw UnauthorizedError("Invalid token payload");
     }
 
     return payload;
   } catch (error) {
     if (error instanceof UnauthorizedError) throw error;
-    throw new UnauthorizedError("Invalid or expired token");
+    throw UnauthorizedError("Invalid or expired token");
   }
 };
 
@@ -58,13 +58,13 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
  */
 export const extractTokenFromHeader = (authHeader?: string): string => {
   if (!authHeader) {
-    throw new UnauthorizedError("Authorization header missing");
+    throw UnauthorizedError("Authorization header missing");
   }
 
   const parts = authHeader.split(" ");
 
   if (parts.length !== 2 || parts[0] !== "Bearer") {
-    throw new UnauthorizedError("Invalid authorization header format");
+    throw UnauthorizedError("Invalid authorization header format");
   }
 
   return parts[1];

@@ -2,7 +2,9 @@ import { Elysia } from "elysia";
 import { testConnection } from "./db";
 import { cors } from "@elysiajs/cors";
 import otpRoutes from "./routes/otp.routes";
+import optionsRoutes from "./routes/options.routes";
 import authRoutes from "./routes/auth.routes";
+import onboardingRoutes from "./routes/onboarding.routes";
 import { env, validateEnv } from "./config/env.config";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -30,7 +32,9 @@ app.get("/health", () => ({
 }));
 
 // API routes
-app.group("/api", (app) => app.use(otpRoutes).use(authRoutes));
+app.group("/api", (app) =>
+  app.use(otpRoutes).use(optionsRoutes).use(onboardingRoutes).use(authRoutes)
+);
 
 // 404 handler
 app.all("*", () => {

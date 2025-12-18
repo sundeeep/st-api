@@ -22,7 +22,7 @@ export const getUserById = ({ params }: { params: { id: string } }) => {
   const user = mockUsers.find((u) => u.id === userId);
 
   if (!user) {
-    throw new NotFoundError(`User with ID ${params.id} not found`);
+    throw NotFoundError(`User with ID ${params.id} not found`);
   }
 
   return successResponse(user, "User fetched successfully");
@@ -35,7 +35,7 @@ export const createUser = ({ body }: { body: { name: string; email: string } }) 
   // Check if email already exists
   const existingUser = mockUsers.find((u) => u.email === body.email);
   if (existingUser) {
-    throw new ConflictError("User with this email already exists");
+    throw ConflictError("User with this email already exists");
   }
 
   const newUser = {
@@ -63,14 +63,14 @@ export const updateUser = ({
   const userIndex = mockUsers.findIndex((u) => u.id === userId);
 
   if (userIndex === -1) {
-    throw new NotFoundError(`User with ID ${params.id} not found`);
+    throw NotFoundError(`User with ID ${params.id} not found`);
   }
 
   // Check if email already exists (if updating email)
   if (body.email) {
     const existingUser = mockUsers.find((u) => u.email === body.email && u.id !== userId);
     if (existingUser) {
-      throw new ConflictError("Email already in use by another user");
+      throw ConflictError("Email already in use by another user");
     }
   }
 
@@ -93,7 +93,7 @@ export const deleteUser = ({ params }: { params: { id: string } }) => {
   const userIndex = mockUsers.findIndex((u) => u.id === userId);
 
   if (userIndex === -1) {
-    throw new NotFoundError(`User with ID ${params.id} not found`);
+    throw NotFoundError(`User with ID ${params.id} not found`);
   }
 
   mockUsers.splice(userIndex, 1);

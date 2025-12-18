@@ -1,16 +1,11 @@
 import { ErrorResponse, ErrorCode, HttpStatus } from "../types/response.types";
-import { AppError } from "../utils/errors.util";
 import { env } from "../config/env.config";
 
-/**
- * Global error handler for Elysia
- * Converts all errors to standardized error response format
- */
 export const globalErrorHandler = ({ code, error, set, path }: any): ErrorResponse => {
   console.error("Error occurred:", error);
 
-  // Handle custom AppError instances
-  if (error instanceof AppError) {
+  // Handle custom errors (with statusCode and errorCode)
+  if (error.statusCode && error.errorCode) {
     set.status = error.statusCode;
     return {
       success: false,

@@ -29,7 +29,7 @@ export const sendOTP = async (phoneNumber: string) => {
   const formattedPhone = formatPhoneNumber(phoneNumber);
 
   if (!isValidPhoneNumber(formattedPhone)) {
-    throw new ValidationError("Invalid phone number format");
+    throw ValidationError("Invalid phone number format");
   }
 
   // Check rate limiting
@@ -44,7 +44,7 @@ export const sendOTP = async (phoneNumber: string) => {
     );
 
   if (recentOTPs.length >= env.OTP_MAX_REQUESTS) {
-    throw new BadRequestError(
+    throw BadRequestError(
       `Too many OTP requests. Please try again after ${env.OTP_RATE_LIMIT_MINUTES} minutes`
     );
   }
@@ -98,17 +98,17 @@ export const verifyOTPAndLogin = async (phoneNumber: string, otp: string, otpId:
     );
 
   if (!otpRecord) {
-    throw new NotFoundError("OTP not found or expired");
+    throw NotFoundError("OTP not found or expired");
   }
 
   // Check if expired
   if (isOTPExpired(otpRecord.expiresAt)) {
-    throw new BadRequestError("OTP has expired");
+    throw BadRequestError("OTP has expired");
   }
 
   // Check max attempts
   if (otpRecord.attempts >= env.OTP_MAX_ATTEMPTS) {
-    throw new BadRequestError("Maximum verification attempts exceeded. Please request a new OTP");
+    throw BadRequestError("Maximum verification attempts exceeded. Please request a new OTP");
   }
 
   // Verify OTP
@@ -123,7 +123,7 @@ export const verifyOTPAndLogin = async (phoneNumber: string, otp: string, otpId:
 
     const remainingAttempts = env.OTP_MAX_ATTEMPTS - (otpRecord.attempts + 1);
 
-    throw new BadRequestError(`Invalid OTP. ${remainingAttempts} attempt(s) remaining`);
+    throw BadRequestError(`Invalid OTP. ${remainingAttempts} attempt(s) remaining`);
   }
 
   // Mark OTP as verified
@@ -195,7 +195,7 @@ export const resendOTP = async (phoneNumber: string) => {
   const formattedPhone = formatPhoneNumber(phoneNumber);
 
   if (!isValidPhoneNumber(formattedPhone)) {
-    throw new ValidationError("Invalid phone number format");
+    throw ValidationError("Invalid phone number format");
   }
 
   // Check rate limiting
@@ -210,7 +210,7 @@ export const resendOTP = async (phoneNumber: string) => {
     );
 
   if (recentOTPs.length >= env.OTP_MAX_REQUESTS) {
-    throw new BadRequestError(
+    throw BadRequestError(
       `Too many OTP requests. Please try again after ${env.OTP_RATE_LIMIT_MINUTES} minutes`
     );
   }

@@ -20,12 +20,12 @@ export const authenticate = async (context: any) => {
     const user = await getUserById(payload.userId);
 
     if (!user) {
-      throw new NotFoundError("User not found");
+      throw NotFoundError("User not found");
     }
 
     // Check if phone is verified
     if (!user.phoneVerified) {
-      throw new UnauthorizedError("Phone number not verified");
+      throw UnauthorizedError("Phone number not verified");
     }
 
     // Attach user to context
@@ -37,7 +37,7 @@ export const authenticate = async (context: any) => {
     if (error instanceof UnauthorizedError || error instanceof NotFoundError) {
       throw error;
     }
-    throw new UnauthorizedError("Authentication failed");
+    throw UnauthorizedError("Authentication failed");
   }
 };
 
@@ -46,11 +46,11 @@ export const authenticate = async (context: any) => {
  */
 export const requireOnboarding = async (context: any) => {
   if (!context.user) {
-    throw new UnauthorizedError("Authentication required");
+    throw UnauthorizedError("Authentication required");
   }
 
   if (!context.user.onboardingComplete) {
-    throw new UnauthorizedError("Please complete onboarding before accessing this resource");
+    throw UnauthorizedError("Please complete onboarding before accessing this resource");
   }
 
   return context;
