@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { Elysia } from "elysia";
+import { Elysia, t } from "elysia";
 import {
   getRequest,
   getUserById,
@@ -8,35 +7,58 @@ import {
   deleteUser,
 } from "../controllers/authController";
 
-// Zod schemas
-const userIdSchema = z.object({
-  id: z.string().regex(/^\d+$/, "ID must be a number"),
-});
-
-const createUserSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email format"),
-});
-
-const updateUserSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").optional(),
-  email: z.string().email("Invalid email format").optional(),
-});
-
 const authRoutes = new Elysia({ prefix: "/auth" })
-  .get("/", getRequest)
+  .get("/", getRequest, {
+    detail: {
+      tags: ["Authentication"],
+      summary: "Get all users",
+      description: "Fetch all users (mock data)",
+    },
+  })
   .get("/:id", getUserById, {
-    params: userIdSchema,
+    params: t.Object({
+      id: t.String({ pattern: "^\\d+$", description: "User ID" }),
+    }),
+    detail: {
+      tags: ["Authentication"],
+      summary: "Get user by ID",
+      description: "Fetch a specific user by ID (mock data)",
+    },
   })
   .post("/", createUser, {
-    body: createUserSchema,
+    body: t.Object({
+      name: t.String({ minLength: 2, description: "User name" }),
+      email: t.String({ format: "email", description: "User email" }),
+    }),
+    detail: {
+      tags: ["Authentication"],
+      summary: "Create user",
+      description: "Create a new user (mock data)",
+    },
   })
   .put("/:id", updateUser, {
-    params: userIdSchema,
-    body: updateUserSchema,
+    params: t.Object({
+      id: t.String({ pattern: "^\\d+$", description: "User ID" }),
+    }),
+    body: t.Object({
+      name: t.Optional(t.String({ minLength: 2, description: "User name" })),
+      email: t.Optional(t.String({ format: "email", description: "User email" })),
+    }),
+    detail: {
+      tags: ["Authentication"],
+      summary: "Update user",
+      description: "Update user details (mock data)",
+    },
   })
   .delete("/:id", deleteUser, {
-    params: userIdSchema,
+    params: t.Object({
+      id: t.String({ pattern: "^\\d+$", description: "User ID" }),
+    }),
+    detail: {
+      tags: ["Authentication"],
+      summary: "Delete user",
+      description: "Delete a user (mock data)",
+    },
   });
 
 export default authRoutes;

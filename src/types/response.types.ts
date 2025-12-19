@@ -1,5 +1,5 @@
 // Standard success response structure
-export interface SuccessResponse<T = any> {
+export interface SuccessResponse<T = unknown> {
   success: true;
   message?: string;
   data?: T;
@@ -7,7 +7,7 @@ export interface SuccessResponse<T = any> {
     page?: number;
     limit?: number;
     total?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -17,7 +17,7 @@ export interface ErrorResponse {
   error: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
     stack?: string;
   };
   timestamp: string;

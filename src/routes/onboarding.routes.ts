@@ -9,100 +9,100 @@ import {
   getOnboardingStatusHandler,
 } from "../controllers/onboardingController";
 
-/**
- * Basic info validation schema
- */
-const basicInfoSchema = t.Object({
-  name: t.String({ minLength: 2, maxLength: 255 }),
-  email: t.String({ format: "email" }),
-  password: t.String({ minLength: 8, maxLength: 100 }),
-});
-
-/**
- * Profile validation schema
- */
-const profileSchema = t.Object({
-  domainId: t.String({ format: "uuid" }),
-  skillIds: t.Array(t.String({ format: "uuid" }), {
-    minItems: 1,
-    maxItems: 20,
-  }),
-});
-
-/**
- * Education validation schema
- */
-const educationSchema = t.Object({
-  degree: t.String({ minLength: 2, maxLength: 255 }),
-  institution: t.String({ minLength: 2, maxLength: 255 }),
-  fieldOfStudy: t.String({ minLength: 2, maxLength: 255 }),
-  startYear: t.Integer({ minimum: 1950, maximum: 2100 }),
-  endYear: t.Optional(t.Integer({ minimum: 1950, maximum: 2100 })),
-  current: t.Boolean({ default: false }),
-});
-
-/**
- * Experience validation schema
- */
-const experienceSchema = t.Object({
-  title: t.String({ minLength: 2, maxLength: 255 }),
-  company: t.String({ minLength: 2, maxLength: 255 }),
-  location: t.Optional(t.String({ maxLength: 255 })),
-  startDate: t.String({ pattern: "^\\d{4}-\\d{2}$" }), // YYYY-MM
-  endDate: t.Optional(t.String({ pattern: "^\\d{4}-\\d{2}$" })), // YYYY-MM
-  current: t.Boolean({ default: false }),
-  description: t.Optional(t.String({ maxLength: 2000 })),
-});
-
-/**
- * Onboarding routes - all require authentication
- */
 const onboardingRoutes = new Elysia({ prefix: "/onboarding" })
   .derive(authenticate)
   .post("/basic-info", updateBasicInfoHandler, {
-    body: basicInfoSchema,
+    body: t.Object({
+      name: t.String({ minLength: 2, maxLength: 255, description: "Full name" }),
+      email: t.String({ format: "email", description: "Email address" }),
+      password: t.String({ minLength: 8, maxLength: 100, description: "Password (min 8 chars)" }),
+    }),
     detail: {
       tags: ["Onboarding"],
       summary: "Update basic user info",
-      description: "Update user's name, email, and password",
+      description: "Update user's name, email, and password. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   })
   .post("/profile", updateProfileHandler, {
-    body: profileSchema,
+    body: t.Object({
+      domainId: t.String({ format: "uuid", description: "Selected domain/field ID" }),
+      skillIds: t.Array(t.String({ format: "uuid" }), {
+        minItems: 1,
+        maxItems: 20,
+        description: "Array of skill IDs (1-20 skills)",
+      }),
+    }),
     detail: {
       tags: ["Onboarding"],
       summary: "Update user profile",
-      description: "Update user's domain and skills",
+      description: "Update user's domain and skills. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   })
   .post("/education", addEducationHandler, {
-    body: educationSchema,
+    body: t.Object({
+      degree: t.String({ minLength: 2, maxLength: 255, description: "Degree name (e.g., B.Tech)" }),
+      institution: t.String({ minLength: 2, maxLength: 255, description: "Institution name" }),
+      fieldOfStudy: t.String({
+        minLength: 2,
+        maxLength: 255,
+        description: "Field of study (e.g., Computer Science)",
+      }),
+      startYear: t.Number({
+        minimum: 1950,
+        maximum: 2100,
+        description: "Start year (e.g., 2020)",
+      }),
+      endYear: t.Optional(
+        t.Number({ minimum: 1950, maximum: 2100, description: "End year (leave empty if current)" })
+      ),
+      current: t.Boolean({ default: false, description: "Currently studying?" }),
+    }),
     detail: {
       tags: ["Onboarding"],
       summary: "Add education record",
-      description: "Add education details to user profile",
+      description: "Add education details to user profile. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   })
   .post("/experience", addExperienceHandler, {
-    body: experienceSchema,
+    body: t.Object({
+      title: t.String({ minLength: 2, maxLength: 255, description: "Job title" }),
+      company: t.String({ minLength: 2, maxLength: 255, description: "Company name" }),
+      location: t.Optional(t.String({ maxLength: 255, description: "Location (city, country)" })),
+      startDate: t.String({
+        pattern: "^\\d{4}-\\d{2}$",
+        description: "Start date in YYYY-MM format",
+      }),
+      endDate: t.Optional(
+        t.String({ pattern: "^\\d{4}-\\d{2}$", description: "End date (leave empty if current)" })
+      ),
+      current: t.Boolean({ default: false, description: "Currently working here?" }),
+      description: t.Optional(t.String({ maxLength: 2000, description: "Job description" })),
+    }),
     detail: {
       tags: ["Onboarding"],
       summary: "Add work experience",
-      description: "Add work experience to user profile",
+      description: "Add work experience to user profile. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   })
   .post("/complete", completeOnboardingHandler, {
     detail: {
       tags: ["Onboarding"],
       summary: "Complete onboarding",
-      description: "Mark user onboarding as complete",
+      description: "Mark user onboarding as complete. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   })
   .get("/status", getOnboardingStatusHandler, {
     detail: {
       tags: ["Onboarding"],
       summary: "Get onboarding status",
-      description: "Get current onboarding progress and completion status",
+      description:
+        "Get current onboarding progress and completion status. User ID is extracted from JWT token.",
+      security: [{ BearerAuth: [] }],
     },
   });
 

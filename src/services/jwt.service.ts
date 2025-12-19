@@ -47,8 +47,10 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
     }
 
     return payload;
-  } catch (error) {
-    if (error instanceof UnauthorizedError) throw error;
+  } catch (error: any) {
+    if (error.statusCode && error.errorCode) {
+      throw error;
+    }
     throw UnauthorizedError("Invalid or expired token");
   }
 };

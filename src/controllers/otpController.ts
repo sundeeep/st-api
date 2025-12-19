@@ -1,33 +1,20 @@
 import * as otpService from "../services/otp.service";
 import { successResponse } from "../utils/response.util";
 
-/**
- * Send OTP to phone number
- */
-export const sendOTPHandler = async ({ body }: { body: { phoneNumber: string } }) => {
+export const sendOTPHandler = async (context: any) => {
+  const { body } = context;
   const result = await otpService.sendOTP(body.phoneNumber);
-
   return successResponse(result, "OTP sent successfully");
 };
 
-/**
- * Verify OTP and login
- */
-export const verifyOTPHandler = async ({
-  body,
-}: {
-  body: { phoneNumber: string; otp: string; otpId: string };
-}) => {
+export const verifyOTPHandler = async (context: any) => {
+  const { body } = context;
   const result = await otpService.verifyOTPAndLogin(body.phoneNumber, body.otp, body.otpId);
-
   return successResponse(result, "Phone verified successfully");
 };
 
-/**
- * Resend OTP
- */
-export const resendOTPHandler = async ({ body }: { body: { phoneNumber: string } }) => {
+export const resendOTPHandler = async (context: any) => {
+  const { body } = context;
   const result = await otpService.resendOTP(body.phoneNumber);
-
   return successResponse(result, "OTP resent successfully");
 };

@@ -1,11 +1,19 @@
 import { Elysia } from "elysia";
-import { testConnection } from "./db";
 import { cors } from "@elysiajs/cors";
+import { testConnection } from "./db";
+import s3Routes from "./routes/s3.routes";
+import { swagger } from "@elysiajs/swagger";
 import otpRoutes from "./routes/otp.routes";
+import quizRoutes from "./routes/quiz.routes";
+// import authRoutes from "./routes/auth.routes";
+import studentRoutes from "./routes/student.routes";
 import optionsRoutes from "./routes/options.routes";
-import authRoutes from "./routes/auth.routes";
-import onboardingRoutes from "./routes/onboarding.routes";
 import { env, validateEnv } from "./config/env.config";
+import onboardingRoutes from "./routes/onboarding.routes";
+import organizationsRoutes from "./routes/organizations.routes";
+import opportunitiesRoutes from "./routes/opportunities.routes";
+import applicationsAdminRoutes from "./routes/applications.routes";
+import quizStudentRoutes from "./routes/quizStudent.routes";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
 // Validate environment variables
@@ -13,6 +21,43 @@ validateEnv();
 
 // Create Elysia app instance
 const app = new Elysia();
+
+// Swagger documentation
+app.use(
+  swagger({
+    documentation: {
+      info: {
+        title: "Student Tribe API",
+        version: "1.0.0",
+        description: "API documentation for Student Tribe platform",
+      },
+      tags: [
+        { name: "Authentication", description: "OTP-based authentication endpoints" },
+        { name: "Options", description: "Get available domains and skills" },
+        { name: "Onboarding", description: "User onboarding flow endpoints" },
+        { name: "Admin - Organizations", description: "Manage organizations" },
+        { name: "Admin - Opportunities", description: "Manage job/internship opportunities" },
+        { name: "Admin - Applications", description: "Manage opportunity applications" },
+        { name: "Admin - Quizzes", description: "Manage quizzes" },
+        { name: "Admin - Quiz Questions", description: "Manage quiz questions" },
+        { name: "Admin - Quiz Attempts", description: "View student quiz attempts" },
+        { name: "Student - Opportunities", description: "Browse and apply to opportunities" },
+        { name: "Student - Quizzes", description: "Take quizzes and view results" },
+        { name: "Student - Quiz Attempts", description: "View your quiz attempt history" },
+        { name: "S3", description: "File upload utilities" },
+      ],
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+          },
+        },
+      },
+    },
+  })
+);
 
 // Global error handler
 app.onError(globalErrorHandler);
@@ -33,7 +78,21 @@ app.get("/health", () => ({
 
 // API routes
 app.group("/api", (app) =>
-  app.use(otpRoutes).use(optionsRoutes).use(onboardingRoutes).use(authRoutes)
+  app
+    .use(otpRoutes)
+    .use(optionsRoutes)
+    .use(onboardingRoutes)
+    // .use(authRoutes)
+    .use(s3Routes)
+    .use(studentRoutes)
+    .use(quizStudentRoutes)
+    .group("/admin", (app) =>
+      app
+        .use(organizationsRoutes)
+        .use(opportunitiesRoutes)
+        .use(applicationsAdminRoutes)
+        .use(quizRoutes)
+    )
 );
 
 // 404 handler
@@ -54,3 +113,4 @@ testConnection().then((connected) => {
 console.log(`🦊 Elysia is running at http://localhost:${env.PORT}`);
 console.log(`📝 Environment: ${env.NODE_ENV}`);
 console.log(`🔗 Health check: http://localhost:${env.PORT}/health`);
+console.log(`📚 Swagger docs: http://localhost:${env.PORT}/swagger`);

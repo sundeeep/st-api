@@ -1,43 +1,16 @@
 import { Elysia, t } from "elysia";
 import { sendOTPHandler, verifyOTPHandler, resendOTPHandler } from "../controllers/otpController";
 
-/**
- * Phone number validation schema
- */
-const phoneNumberSchema = t.Object({
-  phoneNumber: t.String({
-    minLength: 10,
-    maxLength: 20,
-    error: "Phone number must be between 10 and 20 characters",
-  }),
-});
-
-/**
- * Verify OTP schema
- */
-const verifyOTPSchema = t.Object({
-  phoneNumber: t.String({
-    minLength: 10,
-    maxLength: 20,
-  }),
-  otp: t.String({
-    minLength: 6,
-    maxLength: 6,
-    pattern: "^[0-9]{6}$",
-    error: "OTP must be 6 digits",
-  }),
-  otpId: t.String({
-    format: "uuid",
-    error: "Invalid OTP ID format",
-  }),
-});
-
-/**
- * OTP routes
- */
 const otpRoutes = new Elysia({ prefix: "/otp" })
   .post("/send", sendOTPHandler, {
-    body: phoneNumberSchema,
+    body: t.Object({
+      phoneNumber: t.String({
+        minLength: 10,
+        maxLength: 20,
+        pattern: "^\\+?[1-9]\\d{1,14}$",
+        description: "Phone number with country code (e.g., +919876543210)",
+      }),
+    }),
     detail: {
       tags: ["Authentication"],
       summary: "Send OTP to phone number",
@@ -45,7 +18,20 @@ const otpRoutes = new Elysia({ prefix: "/otp" })
     },
   })
   .post("/verify", verifyOTPHandler, {
-    body: verifyOTPSchema,
+    body: t.Object({
+      phoneNumber: t.String({
+        minLength: 10,
+        maxLength: 20,
+        description: "Phone number used for OTP",
+      }),
+      otp: t.String({
+        minLength: 6,
+        maxLength: 6,
+        pattern: "^[0-9]{6}$",
+        description: "6-digit OTP received via SMS",
+      }),
+      otpId: t.String({ format: "uuid", description: "OTP ID from send response" }),
+    }),
     detail: {
       tags: ["Authentication"],
       summary: "Verify OTP and login",
@@ -53,7 +39,14 @@ const otpRoutes = new Elysia({ prefix: "/otp" })
     },
   })
   .post("/resend", resendOTPHandler, {
-    body: phoneNumberSchema,
+    body: t.Object({
+      phoneNumber: t.String({
+        minLength: 10,
+        maxLength: 20,
+        pattern: "^\\+?[1-9]\\d{1,14}$",
+        description: "Phone number with country code",
+      }),
+    }),
     detail: {
       tags: ["Authentication"],
       summary: "Resend OTP",

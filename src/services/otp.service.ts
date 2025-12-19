@@ -20,6 +20,7 @@ import {
   DatabaseError,
 } from "../utils/errors.util";
 import { generateToken } from "./jwt.service";
+import { sendOTPViaSMS } from "./twilio.service";
 
 /**
  * Send OTP to phone number
@@ -64,10 +65,13 @@ export const sendOTP = async (phoneNumber: string) => {
     })
     .returning();
 
-  // Log OTP to console (DEV MODE)
-  logOTPToConsole(formattedPhone, otp, otpRecord.otpId, expiresAt);
+  // Send OTP via Twilio SMS
+  if (env.isProduction()) {
+    await sendOTPViaSMS(formattedPhone, otp);
+  }
 
-  // TODO: In production, send OTP via SMS service (Twilio, MSG91, etc.)
+  // Log OTP to console (for development/debugging)
+  logOTPToConsole(formattedPhone, otp, otpRecord.otpId, expiresAt);
 
   return {
     phoneNumber: formattedPhone,
@@ -236,10 +240,13 @@ export const resendOTP = async (phoneNumber: string) => {
     })
     .returning();
 
-  // Log OTP to console (DEV MODE)
-  logOTPToConsole(formattedPhone, otp, otpRecord.otpId, expiresAt);
+  // Send OTP via Twilio SMS
+  if (env.isProduction()) {
+    await sendOTPViaSMS(formattedPhone, otp);
+  }
 
-  // TODO: In production, send OTP via SMS service
+  // Log OTP to console (for development/debugging)
+  logOTPToConsole(formattedPhone, otp, otpRecord.otpId, expiresAt);
 
   return {
     phoneNumber: formattedPhone,

@@ -33,8 +33,8 @@ export const authenticate = async (context: any) => {
     context.userId = user.id;
 
     return context;
-  } catch (error) {
-    if (error instanceof UnauthorizedError || error instanceof NotFoundError) {
+  } catch (error: any) {
+    if (error.statusCode && error.errorCode) {
       throw error;
     }
     throw UnauthorizedError("Authentication failed");

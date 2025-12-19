@@ -3,10 +3,10 @@ import { SuccessResponse } from "../types/response.types";
 /**
  * Creates a standardized success response
  */
-export const successResponse = <T = any>(
+export const successResponse = <T = unknown>(
   data?: T,
   message?: string,
-  meta?: any
+  meta?: Record<string, unknown>
 ): SuccessResponse<T> => {
   const response: SuccessResponse<T> = {
     success: true,
@@ -22,7 +22,7 @@ export const successResponse = <T = any>(
 /**
  * Creates a paginated success response
  */
-export const paginatedResponse = <T = any>(
+export const paginatedResponse = <T = unknown>(
   data: T[],
   page: number,
   limit: number,

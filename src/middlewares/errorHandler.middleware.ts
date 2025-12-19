@@ -2,7 +2,7 @@ import { ErrorResponse, ErrorCode, HttpStatus } from "../types/response.types";
 import { env } from "../config/env.config";
 
 export const globalErrorHandler = ({ code, error, set, path }: any): ErrorResponse => {
-  console.error("Error occurred:", error);
+  // console.error("Error occurred:", error);
 
   // Handle custom errors (with statusCode and errorCode)
   if (error.statusCode && error.errorCode) {
