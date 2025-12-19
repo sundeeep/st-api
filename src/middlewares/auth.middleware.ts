@@ -1,13 +1,24 @@
-import { Context } from "elysia";
+import type { Context, Elysia } from "elysia";
 import { verifyToken, extractTokenFromHeader } from "../services/jwt.service";
 import { getUserById } from "../services/user.service";
 import { UnauthorizedError, NotFoundError } from "../utils/errors.util";
+
+interface AuthContext extends Context {
+  user?: {
+    id: string;
+    phoneNumber: string;
+    phoneVerified: boolean;
+    onboardingComplete: boolean;
+    role: string;
+  };
+  userId?: string;
+}
 
 /**
  * Authenticate user from JWT token
  * Attaches user data to request context
  */
-export const authenticate = async (context: any) => {
+export const authenticate = async (context: AuthContext): Promise<AuthContext> => {
   try {
     // Extract token from Authorization header
     const authHeader = context.request.headers.get("authorization");
@@ -33,8 +44,9 @@ export const authenticate = async (context: any) => {
     context.userId = user.id;
 
     return context;
-  } catch (error: any) {
-    if (error.statusCode && error.errorCode) {
+  } catch (error: unknown) {
+    const err = error as { statusCode?: number; errorCode?: string };
+    if (err.statusCode && err.errorCode) {
       throw error;
     }
     throw UnauthorizedError("Authentication failed");
@@ -44,7 +56,7 @@ export const authenticate = async (context: any) => {
 /**
  * Check if user has completed onboarding
  */
-export const requireOnboarding = async (context: any) => {
+export const requireOnboarding = async (context: AuthContext): Promise<AuthContext> => {
   if (!context.user) {
     throw UnauthorizedError("Authentication required");
   }
@@ -59,9 +71,9 @@ export const requireOnboarding = async (context: any) => {
 /**
  * Elysia plugin for authentication
  */
-export const authPlugin = (app: any) => {
-  return app.derive(async (context: any) => {
-    await authenticate(context);
+export const authPlugin = (app: Elysia) => {
+  return app.derive(async (context: Context) => {
+    await authenticate(context as AuthContext);
     return context;
   });
 };

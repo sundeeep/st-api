@@ -1,7 +1,16 @@
 import { ErrorResponse, ErrorCode, HttpStatus } from "../types/response.types";
 import { env } from "../config/env.config";
 
-export const globalErrorHandler = ({ code, error, set, path }: any): ErrorResponse => {
+interface ErrorContext {
+  code: string;
+  error: any;
+  set: {
+    status?: number | string;
+  };
+  path: string;
+}
+
+export const globalErrorHandler = ({ code, error, set, path }: ErrorContext): ErrorResponse => {
   // console.error("Error occurred:", error);
 
   // Handle custom errors (with statusCode and errorCode)
@@ -71,7 +80,7 @@ export const globalErrorHandler = ({ code, error, set, path }: any): ErrorRespon
   return {
     success: false,
     error: {
-      code: error.code || ErrorCode.INTERNAL_ERROR,
+      code: error.errorCode || ErrorCode.INTERNAL_ERROR,
       message: error.message || "An unexpected error occurred",
       ...(env.isDevelopment() && {
         stack: error.stack,

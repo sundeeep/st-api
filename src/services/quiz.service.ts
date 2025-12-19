@@ -38,7 +38,7 @@ export const getQuizById = async (id: string) => {
 };
 
 export const updateQuiz = async (id: string, data: Partial<NewQuiz>) => {
-  const sanitizedData: any = { ...data };
+  const sanitizedData: Partial<NewQuiz> & { updatedAt: Date } = { ...data, updatedAt: new Date() };
 
   if (data.title) {
     sanitizedData.title = sanitizeString(data.title);
@@ -46,8 +46,6 @@ export const updateQuiz = async (id: string, data: Partial<NewQuiz>) => {
   if (data.description) {
     sanitizedData.description = sanitizeMarkdown(data.description);
   }
-
-  sanitizedData.updatedAt = new Date();
 
   const [updatedQuiz] = await db
     .update(quizzes)

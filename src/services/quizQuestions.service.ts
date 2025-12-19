@@ -74,7 +74,7 @@ export const getQuestionById = async (id: string) => {
 };
 
 export const updateQuestion = async (id: string, data: Partial<NewQuizQuestion>) => {
-  const sanitizedData: any = { ...data };
+  const sanitizedData: Partial<NewQuizQuestion> = { ...data };
 
   if (data.questionText) {
     sanitizedData.questionText = sanitizeString(data.questionText);

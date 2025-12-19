@@ -58,7 +58,7 @@ export const verifyToken = async (token: string): Promise<JWTPayload> => {
 /**
  * Extract token from Authorization header
  */
-export const extractTokenFromHeader = (authHeader?: string): string => {
+export const extractTokenFromHeader = (authHeader: string | null): string => {
   if (!authHeader) {
     throw UnauthorizedError("Authorization header missing");
   }

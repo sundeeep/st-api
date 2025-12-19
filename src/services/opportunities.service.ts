@@ -77,7 +77,10 @@ export const getOpportunityById = async (id: string) => {
 export const updateOpportunity = async (id: string, data: Partial<NewOpportunity>) => {
   await getOpportunityById(id);
 
-  const sanitizedData: any = { ...data, updatedAt: new Date() };
+  const sanitizedData: Partial<NewOpportunity> & { updatedAt: Date } = {
+    ...data,
+    updatedAt: new Date(),
+  };
   if (data.title) sanitizedData.title = sanitizeString(data.title);
   if (data.description) sanitizedData.description = sanitizeMarkdown(data.description);
   if (data.compensation) sanitizedData.compensation = sanitizeString(data.compensation);

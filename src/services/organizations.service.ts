@@ -43,7 +43,10 @@ export const updateOrganization = async (id: string, data: Partial<NewOrganizati
     throw BadRequestError("Invalid logo URL. Must be from our S3 bucket");
   }
 
-  const sanitizedData: any = { ...data, updatedAt: new Date() };
+  const sanitizedData: Partial<NewOrganization> & { updatedAt: Date } = {
+    ...data,
+    updatedAt: new Date(),
+  };
   if (data.title) sanitizedData.title = sanitizeString(data.title);
   if (data.description) sanitizedData.description = sanitizeString(data.description);
   if (data.city) sanitizedData.city = sanitizeString(data.city);
