@@ -1,5 +1,10 @@
 # Student Tribe API - Setup Guide
 
+🌐 **Live API:** [https://st-api.sureshalabani.site](https://st-api.sureshalabani.site)  
+📚 **API Documentation:** [https://st-api.sureshalabani.site/swagger](https://st-api.sureshalabani.site/swagger)
+
+---
+
 ## Prerequisites
 
 Install Bun runtime:
@@ -35,42 +40,33 @@ bun install
 
 ### 2. Environment Setup
 
-Create `.env` file in the `app` directory:
+Copy the example file and configure:
 
-```env
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database
-DATABASE_URL=postgresql://username:password@host:5432/database
-
-# JWT
-JWT_SECRET=your-jwt-secret-key-change-this
-JWT_EXPIRES_IN=7d
-
-# OTP Configuration
-OTP_EXPIRY_MINUTES=10
-OTP_MAX_ATTEMPTS=3
-OTP_MAX_REQUESTS=3
-OTP_RATE_LIMIT_MINUTES=5
-
-# Twilio SMS
-TWILIO_ACCOUNT_SID=your-twilio-account-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
-TWILIO_PHONE_NUMBER=your-twilio-phone-number
-
-# AWS S3
-AWS_S3_BUCKET_NAME=your-bucket-name
-AWS_S3_ACCESS_KEY_ID=your-access-key
-AWS_S3_SECRET_ACCESS_KEY=your-secret-key
-AWS_REGION=ap-south-1
+```bash
+cp .env.example .env
 ```
 
-### 3. Database Setup
+Then edit `.env` with your actual credentials (see below for Neon DB setup).
+
+### 3. Database Setup (Neon PostgreSQL)
+
+**Get your database:**
+
+1. Go to [neon.tech](https://neon.tech/) and sign up (free)
+2. Create a new project
+3. Copy the connection string from dashboard
+4. Paste it in `.env` as `DATABASE_URL`
+
+**Apply schema:**
 
 ```bash
 bun run db:push
+```
+
+**Optional - View database:**
+
+```bash
+bun run db:studio
 ```
 
 ### 4. Run Server
@@ -97,6 +93,7 @@ bun run start        # Production server
 bun run db:push      # Apply schema changes to database
 bun run db:generate  # Generate migration files
 bun run db:studio    # Open Drizzle Studio (DB GUI)
+bun run db:seed      # Seed test data
 ```
 
 ---
@@ -211,10 +208,11 @@ bun install
 
 - **Runtime**: Bun
 - **Framework**: Elysia
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL (Neon - Serverless)
 - **ORM**: Drizzle
 - **Validation**: Elysia's built-in type system
 - **Authentication**: JWT + Phone OTP (Twilio)
+- **Deployment**: Render
 
 ---
 

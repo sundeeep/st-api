@@ -2,6 +2,9 @@
 
 Backend API for student community platform built with **Elysia.js** and **Bun**.
 
+🌐 **Live API:** [https://st-api.sureshalabani.site](https://st-api.sureshalabani.site)  
+📚 **API Docs:** [https://st-api.sureshalabani.site/swagger](https://st-api.sureshalabani.site/swagger)
+
 ## ✨ Features
 
 - 🔐 **OTP Authentication** with Twilio SMS
@@ -22,7 +25,7 @@ Backend API for student community platform built with **Elysia.js** and **Bun**.
 ### Prerequisites
 
 - [Bun](https://bun.sh/) installed
-- PostgreSQL database
+- [Neon](https://neon.tech/) PostgreSQL database (free tier available)
 
 ### Installation
 
@@ -30,8 +33,14 @@ Backend API for student community platform built with **Elysia.js** and **Bun**.
 # Install dependencies
 bun install
 
-# Create .env file (see SETUP.md for details)
-# Add DATABASE_URL, JWT_SECRET, Twilio keys, AWS keys
+# Copy environment variables
+cp .env.example .env
+
+# Edit .env with your credentials:
+# - Get DATABASE_URL from Neon dashboard
+# - Generate JWT_SECRET (any random string)
+# - Add Twilio credentials (for SMS OTP)
+# - Add AWS S3 credentials (for file uploads)
 
 # Setup database
 bun run db:push
@@ -42,6 +51,24 @@ bun run dev
 
 Server starts at: **http://localhost:3000**  
 Swagger docs: **http://localhost:3000/swagger**
+
+---
+
+## 🗄️ Database
+
+This project uses **[Neon](https://neon.tech/)** - Serverless PostgreSQL:
+
+1. Create account at [neon.tech](https://neon.tech/)
+2. Create new project
+3. Copy connection string from dashboard
+4. Add to `.env` as `DATABASE_URL`
+
+Neon provides:
+
+- ✅ Free tier with generous limits
+- ✅ Auto-scaling serverless Postgres
+- ✅ Built-in connection pooling
+- ✅ Branch-based development
 
 ---
 
@@ -163,11 +190,12 @@ bun run db:seed          # Seed test data
 
 - **Runtime:** Bun
 - **Framework:** Elysia.js
-- **Database:** PostgreSQL (Neon)
+- **Database:** PostgreSQL (Neon - Serverless)
 - **ORM:** Drizzle ORM
 - **Authentication:** JWT + OTP (Twilio)
 - **File Storage:** AWS S3
 - **Documentation:** Swagger/OpenAPI
+- **Deployment:** Render
 
 ---
 
@@ -217,11 +245,21 @@ bun run db:seed          # Seed test data
 
 ### Swagger UI
 
-Interactive API documentation: **http://localhost:3000/swagger**
+- **Local:** http://localhost:3000/swagger
+- **Production:** https://st-api.sureshalabani.site/swagger
 
 ### Setup Guide
 
 See [SETUP.md](./SETUP.md) for detailed setup instructions.
+
+### Environment Variables
+
+Copy [.env.example](./.env.example) to `.env` and configure with your credentials:
+
+- Neon Database URL
+- JWT Secret
+- Twilio credentials
+- AWS S3 keys
 
 ### Authentication
 
