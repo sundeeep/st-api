@@ -148,7 +148,14 @@ bun run db:seed          # Seed test data
 
 ### Options
 
-- `GET /api/options/domains-and-skills` - Get domains and skills
+- `GET /api/options/domains` - Get all domains
+- `GET /api/options/skills` - Get all skills
+- `GET /api/options/education-options` - Get degree and field options for education form
+
+### Profile
+
+- `GET /api/profile/me` - Get complete profile of authenticated user (auth required)
+- `GET /api/profile/:username` - Get complete profile by username (public)
 
 ---
 

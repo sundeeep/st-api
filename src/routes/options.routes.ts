@@ -1,8 +1,12 @@
 import { Elysia } from "elysia";
-import { getDomainsHandler, getSkillsHandler } from "../controllers/optionsController";
+import {
+  getDomainsHandler,
+  getSkillsHandler,
+  getEducationOptionsHandler,
+} from "../controllers/optionsController";
 
 /**
- * Options routes (domains & skills for selection)
+ * Options routes (domains, skills, education options for selection)
  */
 const optionsRoutes = new Elysia()
   .get("/domains", getDomainsHandler, {
@@ -17,6 +21,13 @@ const optionsRoutes = new Elysia()
       tags: ["Domains & Skills"],
       summary: "Get all skills",
       description: "Fetch all available skills for user selection",
+    },
+  })
+  .get("/education-options", getEducationOptionsHandler, {
+    detail: {
+      tags: ["Domains & Skills"],
+      summary: "Get education options",
+      description: "Fetch all available degree and field of study options for education form",
     },
   });
 

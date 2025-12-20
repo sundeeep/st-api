@@ -10,3 +10,8 @@ export const getSkillsHandler = async () => {
   const skills = await optionsService.getAllSkills();
   return successResponse(skills, "Skills fetched successfully");
 };
+
+export const getEducationOptionsHandler = async () => {
+  const options = await optionsService.getEducationOptions();
+  return successResponse(options, "Education options fetched successfully");
+};

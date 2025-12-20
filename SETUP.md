@@ -135,7 +135,14 @@ bun run db:studio    # Open Drizzle Studio (DB GUI)
 
 ### Get Options
 
-- **Domains & Skills**: `GET /api/options/domains-and-skills`
+- **Domains**: `GET /api/options/domains`
+- **Skills**: `GET /api/options/skills`
+- **Education Options**: `GET /api/options/education-options` - Get degree and field dropdown options
+
+### Profile
+
+- **My Profile**: `GET /api/profile/me` - Get complete profile (requires auth token)
+- **Profile by Username**: `GET /api/profile/:username` - Get any user's profile (public)
 
 ---
 

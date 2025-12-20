@@ -8,6 +8,7 @@ import quizRoutes from "./routes/quiz.routes";
 // import authRoutes from "./routes/auth.routes";
 import studentRoutes from "./routes/student.routes";
 import optionsRoutes from "./routes/options.routes";
+import profileRoutes from "./routes/profile.routes";
 import { env, validateEnv } from "./config/env.config";
 import onboardingRoutes from "./routes/onboarding.routes";
 import organizationsRoutes from "./routes/organizations.routes";
@@ -35,6 +36,7 @@ app.use(
         { name: "Authentication", description: "OTP-based authentication endpoints" },
         { name: "Domains & Skills", description: "Get available domains and skills" },
         { name: "Onboarding", description: "User onboarding flow endpoints" },
+        { name: "Profile", description: "User profile endpoints" },
         { name: "Admin - Organizations", description: "Manage organizations" },
         { name: "Admin - Opportunities", description: "Manage job/internship opportunities" },
         { name: "Admin - Applications", description: "Manage opportunity applications" },
@@ -87,6 +89,7 @@ app.group("/api", (app) =>
     .use(s3Routes)
     .use(studentRoutes)
     .use(quizStudentRoutes)
+    .group("/profile", (app) => app.use(profileRoutes))
     .group("/admin", (app) =>
       app
         .use(organizationsRoutes)

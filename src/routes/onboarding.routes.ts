@@ -63,13 +63,34 @@ const onboardingRoutes = new Elysia({ prefix: "/onboarding" })
   })
   .post("/education", addEducationHandler, {
     body: t.Object({
-      degree: t.String({ minLength: 2, maxLength: 255, description: "Degree name (e.g., B.Tech)" }),
+      degree: t.Union(
+        [
+          t.Literal("10th_standard"),
+          t.Literal("12th_intermediate"),
+          t.Literal("diploma"),
+          t.Literal("bachelors"),
+          t.Literal("masters"),
+          t.Literal("phd"),
+          t.Literal("other"),
+        ],
+        { description: "Degree level" }
+      ),
       institution: t.String({ minLength: 2, maxLength: 255, description: "Institution name" }),
-      fieldOfStudy: t.String({
-        minLength: 2,
-        maxLength: 255,
-        description: "Field of study (e.g., Computer Science)",
-      }),
+      fieldOfStudy: t.Union(
+        [
+          t.Literal("computer_science"),
+          t.Literal("engineering"),
+          t.Literal("business_management"),
+          t.Literal("commerce"),
+          t.Literal("arts_humanities"),
+          t.Literal("science"),
+          t.Literal("medical"),
+          t.Literal("law"),
+          t.Literal("design"),
+          t.Literal("other"),
+        ],
+        { description: "Field of study" }
+      ),
       startYear: t.Number({
         minimum: 1950,
         maximum: 2100,
