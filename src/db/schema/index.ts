@@ -15,3 +15,4 @@ export * from "./opportunityApplications.schema";
 export * from "./quizzes.schema";
 export * from "./quizQuestions.schema";
 export * from "./quizAttempts.schema";
+export * from "./usersProfile.schema";

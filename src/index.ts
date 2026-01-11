@@ -1,20 +1,9 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { testConnection } from "./db";
-import s3Routes from "./routes/s3.routes";
 import { swagger } from "@elysiajs/swagger";
-import otpRoutes from "./routes/otp.routes";
-import quizRoutes from "./routes/quiz.routes";
-// import authRoutes from "./routes/auth.routes";
-import studentRoutes from "./routes/student.routes";
-import optionsRoutes from "./routes/options.routes";
-import profileRoutes from "./routes/profile.routes";
+import authRoutes from "./auth/auth.routes";
 import { env, validateEnv } from "./config/env.config";
-import onboardingRoutes from "./routes/onboarding.routes";
-import organizationsRoutes from "./routes/organizations.routes";
-import opportunitiesRoutes from "./routes/opportunities.routes";
-import applicationsAdminRoutes from "./routes/applications.routes";
-import quizStudentRoutes from "./routes/quizStudent.routes";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
 // Validate environment variables
@@ -30,23 +19,13 @@ app.use(
       info: {
         title: "Student Tribe API",
         version: "1.0.0",
-        description: "API documentation for Student Tribe platform",
+        description: "Student Tribe API - Authentication System",
       },
       tags: [
-        { name: "Authentication", description: "OTP-based authentication endpoints" },
-        { name: "Domains & Skills", description: "Get available domains and skills" },
-        { name: "Onboarding", description: "User onboarding flow endpoints" },
-        { name: "Profile", description: "User profile endpoints" },
-        { name: "Admin - Organizations", description: "Manage organizations" },
-        { name: "Admin - Opportunities", description: "Manage job/internship opportunities" },
-        { name: "Admin - Applications", description: "Manage opportunity applications" },
-        { name: "Admin - Quizzes", description: "Manage quizzes" },
-        { name: "Admin - Quiz Questions", description: "Manage quiz questions" },
-        { name: "Admin - Quiz Attempts", description: "View student quiz attempts" },
-        { name: "Student - Opportunities", description: "Browse and apply to opportunities" },
-        { name: "Student - Quizzes", description: "Take quizzes and view results" },
-        { name: "Student - Quiz Attempts", description: "View your quiz attempt history" },
-        { name: "S3", description: "File upload utilities" },
+        {
+          name: "Authentication",
+          description: "OTP-based mobile authentication with JWT + Redis sessions",
+        },
       ],
       components: {
         securitySchemes: {
@@ -54,6 +33,7 @@ app.use(
             type: "http",
             scheme: "bearer",
             bearerFormat: "JWT",
+            description: "JWT token received from /auth/verify-otp endpoint",
           },
         },
       },
@@ -80,24 +60,7 @@ app.get("/health", () => ({
 }));
 
 // API routes
-app.group("/api", (app) =>
-  app
-    .use(otpRoutes)
-    .use(optionsRoutes)
-    .use(onboardingRoutes)
-    // .use(authRoutes)
-    .use(s3Routes)
-    .use(studentRoutes)
-    .use(quizStudentRoutes)
-    .group("/profile", (app) => app.use(profileRoutes))
-    .group("/admin", (app) =>
-      app
-        .use(organizationsRoutes)
-        .use(opportunitiesRoutes)
-        .use(applicationsAdminRoutes)
-        .use(quizRoutes)
-    )
-);
+app.group("/api", (app) => app.use(authRoutes));
 
 // 404 handler
 app.all("*", () => {

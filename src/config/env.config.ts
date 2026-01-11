@@ -16,9 +16,17 @@ export const env = {
   AWS_S3_ACCESS_KEY_ID: process.env.AWS_S3_ACCESS_KEY_ID!,
   AWS_S3_SECRET_ACCESS_KEY: process.env.AWS_S3_SECRET_ACCESS_KEY!,
 
-  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID!,
-  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN!,
-  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER!,
+  // Redis
+  REDIS_URL: process.env.REDIS_URL!,
+
+  // MSG91 OTP
+  MSG91_AUTH_KEY: process.env.MSG91_AUTH_KEY!,
+  MSG91_TEMPLATE_ID: process.env.MSG91_TEMPLATE_ID!,
+
+  // Twilio (deprecated, keeping for backward compatibility)
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
 
   isDevelopment: () => env.NODE_ENV === "development",
   isProduction: () => env.NODE_ENV === "production",
@@ -35,9 +43,9 @@ export const validateEnv = (): void => {
     "AWS_S3_BUCKET_NAME",
     "AWS_S3_ACCESS_KEY_ID",
     "AWS_S3_SECRET_ACCESS_KEY",
-    "TWILIO_ACCOUNT_SID",
-    "TWILIO_AUTH_TOKEN",
-    "TWILIO_PHONE_NUMBER",
+    "REDIS_URL",
+    "MSG91_AUTH_KEY",
+    "MSG91_TEMPLATE_ID",
   ];
 
   const missing = required.filter((key) => !process.env[key]);
