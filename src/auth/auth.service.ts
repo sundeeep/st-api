@@ -16,6 +16,7 @@ import {
 import { ValidationError, BadRequestError, NotFoundError } from "../utils/errors.util";
 import { generateOTP, hashOTP, verifyOTP as verifyOTPHash } from "../utils/otp.util";
 import { env } from "../config/env.config";
+import { AUTH_CONFIG } from "./auth.config";
 
 /**
  * Format and validate Indian phone number
@@ -26,23 +27,27 @@ function formatPhone(phone: string): string {
   // Remove any non-digit characters
   let cleaned = phone.replace(/\D/g, "");
 
-  // If already has country code (91), remove it
-  if (cleaned.startsWith("91") && cleaned.length === 12) {
+  // If already has country code, remove it
+  if (cleaned.startsWith(AUTH_CONFIG.PHONE.COUNTRY_CODE) && cleaned.length === 12) {
     cleaned = cleaned.substring(2);
   }
 
-  // Add +91 prefix
-  return `+91${cleaned}`;
+  // Add country code prefix
+  return `+${AUTH_CONFIG.PHONE.COUNTRY_CODE}${cleaned}`;
 }
 
 function isValidPhone(phone: string): boolean {
-  // After formatting, should be exactly 10 digits (excluding +91)
+  // After formatting, should be exactly 10 digits (excluding country code)
   const cleaned = phone.replace(/\D/g, "");
   const withoutCountryCode =
-    cleaned.startsWith("91") && cleaned.length === 12 ? cleaned.substring(2) : cleaned;
+    cleaned.startsWith(AUTH_CONFIG.PHONE.COUNTRY_CODE) && cleaned.length === 12
+      ? cleaned.substring(2)
+      : cleaned;
 
   // Indian mobile: exactly 10 digits, starts with 6-9
-  return /^[6-9]\d{9}$/.test(withoutCountryCode);
+  const validStartPattern = AUTH_CONFIG.PHONE.VALID_START_DIGITS.join("");
+  const regex = new RegExp(`^[${validStartPattern}]\\d{${AUTH_CONFIG.PHONE.MIN_DIGITS - 1}}$`);
+  return regex.test(withoutCountryCode);
 }
 
 /**
@@ -89,7 +94,7 @@ export async function sendOTP(mobile: string) {
   return {
     mobile: formattedMobile,
     otpId,
-    expiresIn: 300, // 5 minutes in seconds
+    expiresIn: AUTH_CONFIG.OTP.EXPIRY_SECONDS,
   };
 }
 
@@ -101,7 +106,7 @@ export async function verifyOTPAndLogin(mobile: string, otp: string, otpId: stri
 
   // Check OTP attempts (prevent brute force)
   const attempts = await trackOTPAttempt(formattedMobile);
-  if (attempts > 5) {
+  if (attempts > AUTH_CONFIG.OTP.MAX_ATTEMPTS_PER_PHONE) {
     throw BadRequestError("Too many failed attempts. Please request a new OTP");
   }
 
@@ -112,7 +117,7 @@ export async function verifyOTPAndLogin(mobile: string, otp: string, otpId: stri
   }
 
   // Check max attempts per OTP
-  if (otpData.attempts >= 3) {
+  if (otpData.attempts >= AUTH_CONFIG.OTP.MAX_ATTEMPTS_PER_OTP) {
     throw BadRequestError("Maximum verification attempts exceeded. Please request a new OTP");
   }
 
@@ -123,7 +128,7 @@ export async function verifyOTPAndLogin(mobile: string, otp: string, otpId: stri
     // Increment attempts
     await incrementOTPAttempts(formattedMobile, otpId);
 
-    const remainingAttempts = 3 - (otpData.attempts + 1);
+    const remainingAttempts = AUTH_CONFIG.OTP.MAX_ATTEMPTS_PER_OTP - (otpData.attempts + 1);
     throw BadRequestError(`Invalid OTP. ${remainingAttempts} attempt(s) remaining`);
   }
 
@@ -154,7 +159,7 @@ export async function verifyOTPAndLogin(mobile: string, otp: string, otpId: stri
       .insert(usersProfile)
       .values({
         mobile: formattedMobile,
-        onboardingStep: 0,
+        onboardingStep: AUTH_CONFIG.USER.INITIAL_ONBOARDING_STEP,
         onboardingComplete: false,
       })
       .returning();
@@ -223,7 +228,7 @@ export async function resendOTP(mobile: string, retryType: "text" | "voice" = "t
   return {
     mobile: formattedMobile,
     otpId,
-    expiresIn: 300,
+    expiresIn: AUTH_CONFIG.OTP.EXPIRY_SECONDS,
   };
 }
 

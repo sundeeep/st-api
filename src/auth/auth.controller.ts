@@ -9,6 +9,7 @@ import type {
   AuthenticatedContext,
 } from "./auth.types";
 import { generateToken } from "./auth.jwt";
+import { AUTH_CONFIG } from "./auth.config";
 
 /**
  * Send OTP to mobile number
@@ -31,7 +32,7 @@ export const verifyOTPHandler = async (context: Context): Promise<SuccessRespons
     userId: result.user.id,
     mobile: result.user.mobile!,
     email: result.user.email,
-    role: "user",
+    role: AUTH_CONFIG.USER.DEFAULT_ROLE,
     sessionId: result.sessionId,
   });
 

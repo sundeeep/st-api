@@ -1,4 +1,6 @@
-const MSG91_BASE_URL = "https://control.msg91.com/api/v5";
+import { AUTH_CONFIG } from "../auth.config";
+
+const MSG91_BASE_URL = AUTH_CONFIG.MSG91.BASE_URL;
 
 interface MSG91Response {
   type: string;
@@ -27,7 +29,7 @@ export async function sendOTP(phone: string, otp: string): Promise<OTPResult> {
         template_id: process.env.MSG91_TEMPLATE_ID!,
         mobile: phone,
         otp: otp, // ✅ Send our custom OTP
-        otp_expiry: 5, // 5 minutes
+        otp_expiry: AUTH_CONFIG.OTP.EXPIRY_MINUTES,
       }),
     });
 
