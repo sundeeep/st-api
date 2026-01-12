@@ -5,6 +5,7 @@ import { sendOTP as sendMsg91OTP, resendOTP as resendMsg91OTP } from "./lib/msg9
 import {
   createSession,
   deleteSession,
+  getSession,
   checkOTPRateLimit,
   trackOTPAttempt,
   resetOTPAttempts,
@@ -256,5 +257,36 @@ export async function getUserById(userId: string) {
     fullName: user.fullName,
     role: user.role,
     onboardingComplete: user.onboardingComplete || false,
+  };
+}
+
+/**
+ * Refresh access token using sessionId
+ * Rotates sessionId for security (best practice)
+ */
+export async function refreshAccessToken(sessionId: string) {
+  const session = await getSession(sessionId);
+
+  if (!session) {
+    throw NotFoundError("Session expired or invalid. Please login again");
+  }
+
+  await deleteSession(sessionId);
+
+  const newSessionId = await createSession(
+    session.userId,
+    session.mobile,
+    session.email,
+    session.role
+  );
+
+  const user = await getUserById(session.userId);
+
+  return {
+    userId: user.id,
+    mobile: user.mobile,
+    email: user.email,
+    role: user.role,
+    sessionId: newSessionId,
   };
 }

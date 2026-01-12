@@ -12,7 +12,5 @@ export * from "./userProfileLinks.schema";
 export * from "./organizations.schema";
 export * from "./opportunities.schema";
 export * from "./opportunityApplications.schema";
-export * from "./quizzes.schema";
-export * from "./quizQuestions.schema";
-export * from "./quizAttempts.schema";
 export * from "./usersProfile.schema";
+export * from "../../quiz/quiz.schema";

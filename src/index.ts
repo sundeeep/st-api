@@ -3,6 +3,7 @@ import { cors } from "@elysiajs/cors";
 import { testConnection } from "./db";
 import { swagger } from "@elysiajs/swagger";
 import authRoutes from "./auth/auth.routes";
+import adminQuizRoutes from "./quiz/quiz.routes";
 import { env, validateEnv } from "./config/env.config";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -19,12 +20,28 @@ app.use(
       info: {
         title: "Student Tribe API",
         version: "1.0.0",
-        description: "Student Tribe API - Authentication System",
+        description: "Student Tribe API - Authentication & Quiz Management System",
       },
       tags: [
         {
           name: "Authentication",
           description: "OTP-based mobile authentication with JWT + Redis sessions",
+        },
+        {
+          name: "Admin - Quiz Categories",
+          description: "Manage quiz categories",
+        },
+        {
+          name: "Admin - Quizzes",
+          description: "Create and manage quizzes",
+        },
+        {
+          name: "Admin - Quiz Questions",
+          description: "Add and manage quiz questions",
+        },
+        {
+          name: "Admin - Analytics",
+          description: "View quiz statistics and participant data",
         },
       ],
       components: {
@@ -60,7 +77,7 @@ app.get("/health", () => ({
 }));
 
 // API routes
-app.group("/api", (app) => app.use(authRoutes));
+app.group("/api", (app) => app.use(authRoutes).use(adminQuizRoutes));
 
 // 404 handler
 app.all("*", () => {

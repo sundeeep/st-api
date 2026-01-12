@@ -2,14 +2,10 @@ import type { Context } from "elysia";
 import * as authService from "./auth.service";
 import { successResponse, messageResponse } from "../utils/response.util";
 import type { SuccessResponse } from "../types/response.types";
-import type {
-  SendOTPBody,
-  VerifyOTPBody,
-  ResendOTPBody,
-  AuthenticatedContext,
-} from "./auth.types";
+import type { SendOTPBody, VerifyOTPBody, ResendOTPBody, AuthenticatedContext } from "./auth.types";
 import { generateToken } from "./auth.jwt";
 import { AUTH_CONFIG } from "./auth.config";
+import { UnauthorizedError } from "../utils/errors.util";
 
 /**
  * Send OTP to mobile number
@@ -72,6 +68,30 @@ export const logoutHandler = async (context: Context): Promise<SuccessResponse> 
 /**
  * Get current user profile
  */
-export const getMeHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
+export const getProfileHandler = async (
+  context: AuthenticatedContext
+): Promise<SuccessResponse> => {
   return successResponse(context.user, "User profile fetched successfully");
+};
+
+/**
+ * Refresh access token
+ */
+export const refreshTokenHandler = async (context: Context): Promise<SuccessResponse> => {
+  const sessionId = context.request.headers.get("x-session-id");
+
+  if (!sessionId) {
+    throw UnauthorizedError("Missing X-Session-Id header");
+  }
+
+  const tokenData = await authService.refreshAccessToken(sessionId);
+  const accessToken = await generateToken(tokenData);
+
+  return successResponse(
+    {
+      accessToken,
+      sessionId: tokenData.sessionId,
+    },
+    "Token refreshed successfully"
+  );
 };

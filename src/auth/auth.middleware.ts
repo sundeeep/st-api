@@ -11,39 +11,13 @@ import type { AuthenticatedContext } from "./auth.types";
  */
 export async function authenticate(context: Context): Promise<AuthenticatedContext> {
   try {
-    // 1. Get Authorization header
     const authHeader = context.request.headers.get("authorization");
     const token = extractTokenFromHeader(authHeader);
 
-    // 2. Verify JWT
     const payload = await verifyToken(token);
 
-    // 3. Get sessionId from header
-    const sessionId = context.request.headers.get("x-session-id");
-    if (!sessionId) {
-      throw UnauthorizedError("Missing X-Session-Id header");
-    }
+    const user = await getUserById(payload.userId);
 
-    // 4. ✅ CRITICAL: Check Redis session
-    const session = await getSession(sessionId);
-    if (!session) {
-      throw UnauthorizedError("Session expired or invalid");
-    }
-
-    // 5. Verify sessionId matches JWT
-    if (payload.sessionId !== sessionId) {
-      throw UnauthorizedError("Session mismatch");
-    }
-
-    // 6. Verify userId matches
-    if (payload.userId !== session.userId) {
-      throw UnauthorizedError("User mismatch");
-    }
-
-    // 7. Get user from database
-    const user = await getUserById(session.userId);
-
-    // 8. Attach user to context (convert null to undefined for consistency)
     const authContext = context as AuthenticatedContext;
     authContext.user = {
       ...user,

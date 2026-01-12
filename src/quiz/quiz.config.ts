@@ -1,0 +1,13 @@
+export const QUIZ_CONFIG = {
+  DEFAULTS: {
+    MAX_ATTEMPTS: 1,
+    QUESTION_POINTS: 1.0,
+    PAGE_SIZE: 20,
+    LEADERBOARD_LIMIT: 10,
+  },
+
+  VALIDATION: {
+    MIN_OPTIONS_PER_QUESTION: 4,
+    MAX_OPTIONS_PER_QUESTION: 4,
+  },
+} as const;

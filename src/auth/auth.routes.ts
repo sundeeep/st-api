@@ -4,7 +4,8 @@ import {
   verifyOTPHandler,
   resendOTPHandler,
   logoutHandler,
-  getMeHandler,
+  getProfileHandler,
+  refreshTokenHandler,
 } from "./auth.controller";
 import { authenticate } from "./auth.middleware";
 
@@ -94,20 +95,30 @@ const authRoutes = new Elysia({ prefix: "/auth" })
    * Get current user profile
    */
   .get(
-    "/me",
+    "/profile",
     async (context) => {
       const authContext = await authenticate(context);
-      return getMeHandler(authContext);
+      return getProfileHandler(authContext);
     },
     {
       detail: {
         tags: ["Authentication"],
         summary: "Get current user profile",
-        description:
-          "Returns the authenticated user's profile. Requires Authorization and X-Session-Id headers",
+        description: "Returns the authenticated user's profile. Requires Authorization header",
         security: [{ BearerAuth: [] }],
       },
     }
-  );
+  )
+
+  /**
+   * Refresh access token
+   */
+  .post("/refresh", refreshTokenHandler, {
+    detail: {
+      tags: ["Authentication"],
+      summary: "Refresh access token",
+      description: "Get new access token using session ID. Requires X-Session-Id header",
+    },
+  });
 
 export default authRoutes;
