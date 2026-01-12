@@ -76,6 +76,26 @@ app.get("/health", () => ({
   },
 }));
 
+// Debug endpoint to check outbound IP
+app.get("/debug-ip", async () => {
+  try {
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
+    return {
+      success: true,
+      data: {
+        outboundIp: data.ip,
+        message: "This is the outbound IP seen by external services (e.g., MSG91, Redis)",
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: "Failed to fetch IP address",
+    };
+  }
+});
+
 // API routes
 app.group("/api", (app) => app.use(authRoutes).use(adminQuizRoutes));
 
