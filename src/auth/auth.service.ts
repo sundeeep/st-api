@@ -67,15 +67,24 @@ export async function sendOTP(mobile: string) {
     throw BadRequestError("Too many OTP requests. Please try again after 1 hour");
   }
 
-  // Generate OTP
-  const otp = generateOTP();
+  // Generate OTP (or use bypass OTP for testing)
+  const otp = env.BYPASS_OTP ? "123456" : generateOTP();
   const otpHash = await hashOTP(otp);
 
   // Store OTP in Redis
   const otpId = await storeOTP(formattedMobile, otpHash);
 
-  // Send OTP via MSG91 or log to console in development
-  if (env.isProduction()) {
+  // Bypass MSG91 if BYPASS_OTP is enabled
+  if (env.BYPASS_OTP) {
+    console.log("\n" + "=".repeat(50));
+    console.log("🚫 OTP BYPASS MODE ACTIVE (MSG91 SKIPPED)");
+    console.log("=".repeat(50));
+    console.log(`📞 Mobile: ${formattedMobile}`);
+    console.log(`🔑 OTP: ${otp} (BYPASS - Use this for testing)`);
+    console.log(`🆔 OTP ID: ${otpId}`);
+    console.log("=".repeat(50) + "\n");
+  } else if (env.isProduction()) {
+    // Send OTP via MSG91 in production
     const result = await sendMsg91OTP(formattedMobile, otp);
     if (!result.success) {
       throw BadRequestError(result.message);
@@ -201,15 +210,24 @@ export async function resendOTP(mobile: string, retryType: "text" | "voice" = "t
     throw BadRequestError("Too many OTP requests. Please try again after 1 hour");
   }
 
-  // Generate new OTP
-  const otp = generateOTP();
+  // Generate new OTP (or use bypass OTP for testing)
+  const otp = env.BYPASS_OTP ? "123456" : generateOTP();
   const otpHash = await hashOTP(otp);
 
   // Store new OTP in Redis
   const otpId = await storeOTP(formattedMobile, otpHash);
 
-  // Send OTP via MSG91 or log to console in development
-  if (env.isProduction()) {
+  // Bypass MSG91 if BYPASS_OTP is enabled
+  if (env.BYPASS_OTP) {
+    console.log("\n" + "=".repeat(50));
+    console.log("🚫 OTP BYPASS MODE ACTIVE (MSG91 SKIPPED)");
+    console.log("=".repeat(50));
+    console.log(`📞 Mobile: ${formattedMobile}`);
+    console.log(`🔑 OTP: ${otp} (BYPASS - Use this for testing)`);
+    console.log(`🆔 OTP ID: ${otpId}`);
+    console.log("=".repeat(50) + "\n");
+  } else if (env.isProduction()) {
+    // Send OTP via MSG91 in production
     const result = await resendMsg91OTP(formattedMobile, otp);
     if (!result.success) {
       throw BadRequestError(result.message);

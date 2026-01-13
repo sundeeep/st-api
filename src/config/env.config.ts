@@ -23,6 +23,11 @@ export const env = {
   MSG91_AUTH_KEY: process.env.MSG91_AUTH_KEY!,
   MSG91_TEMPLATE_ID: process.env.MSG91_TEMPLATE_ID!,
 
+  // OTP Bypass (for testing - skips MSG91, always uses "123456")
+  // Accepts: "true", "TRUE", "True", "1", or true
+  BYPASS_OTP:
+    process.env.BYPASS_OTP === "true",
+
   // Twilio (deprecated, keeping for backward compatibility)
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
