@@ -1,7 +1,7 @@
 import type { Context } from "elysia";
-import * as quizService from "./quiz.service";
-import { successResponse } from "../utils/response.util";
-import type { SuccessResponse } from "../types/response.types";
+import * as quizService from "./admin.service";
+import { successResponse } from "../../utils/response.util";
+import type { SuccessResponse } from "../../types/response.types";
 import type {
   AuthenticatedContext,
   CreateCategoryBody,
@@ -11,7 +11,7 @@ import type {
   AddQuestionsBody,
   UpdateQuestionBody,
   QuizFilters,
-} from "./quiz.types";
+} from "./admin.types";
 
 export const createCategoryHandler = async (context: Context): Promise<SuccessResponse> => {
   const body = context.body as CreateCategoryBody;

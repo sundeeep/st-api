@@ -10,7 +10,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { usersProfile } from "../auth/auth.schema";
+import { usersProfile } from "../../auth/auth.schema";
 
 export const quizCategories = pgTable(
   "quiz_categories",

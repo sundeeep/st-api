@@ -1,5 +1,5 @@
 import { eq, desc, and, sql, ilike, or } from "drizzle-orm";
-import { db } from "../db";
+import { db } from "../../db";
 import {
   quizCategories,
   quizzes,
@@ -8,9 +8,9 @@ import {
   userQuizAttempts,
   userQuizAnswers,
   quizLeaderboard,
-} from "./quiz.schema";
-import { ValidationError, NotFoundError, BadRequestError } from "../utils/errors.util";
-import { QUIZ_CONFIG } from "./quiz.config";
+} from "../shared/schema";
+import { ValidationError, NotFoundError, BadRequestError } from "../../utils/errors.util";
+import { QUIZ_CONFIG } from "../shared/config";
 import type {
   CreateCategoryBody,
   UpdateCategoryBody,
@@ -19,7 +19,7 @@ import type {
   AddQuestionsBody,
   UpdateQuestionBody,
   QuizFilters,
-} from "./quiz.types";
+} from "./admin.types";
 
 export async function createCategory(data: CreateCategoryBody) {
   const [category] = await db

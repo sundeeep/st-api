@@ -1,6 +1,6 @@
 import { Elysia, t } from "elysia";
-import { requireAdmin } from "../middlewares/admin.middleware";
-import * as quizController from "./quiz.controller";
+import { requireAdmin } from "../../middlewares/admin.middleware";
+import * as quizController from "./admin.controller";
 
 const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
   .post(
