@@ -28,6 +28,11 @@ export const env = {
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
 
+  // Razorpay
+  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID!,
+  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET!,
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET!,
+
   isDevelopment: () => env.NODE_ENV === "development",
   isProduction: () => env.NODE_ENV === "production",
 } as const;
@@ -39,6 +44,7 @@ export const validateEnv = (): void => {
   const required = [
     "DATABASE_URL",
     "JWT_SECRET",
+    "JWT_EXPIRES_IN",
     "AWS_REGION",
     "AWS_S3_BUCKET_NAME",
     "AWS_S3_ACCESS_KEY_ID",
@@ -46,6 +52,9 @@ export const validateEnv = (): void => {
     "REDIS_URL",
     "MSG91_AUTH_KEY",
     "MSG91_TEMPLATE_ID",
+    "RAZORPAY_KEY_ID",
+    "RAZORPAY_KEY_SECRET",
+    "RAZORPAY_WEBHOOK_SECRET",
   ];
 
   const missing = required.filter((key) => !process.env[key]);
