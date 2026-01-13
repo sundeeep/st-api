@@ -13,4 +13,5 @@ export * from "./organizations.schema";
 export * from "./opportunities.schema";
 export * from "./opportunityApplications.schema";
 export * from "./usersProfile.schema";
-export * from "../../quiz/quiz.schema";
+export * from "../../quiz/shared/schema";
+export * from "../../events/shared/schema";

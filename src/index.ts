@@ -3,7 +3,11 @@ import { cors } from "@elysiajs/cors";
 import { testConnection } from "./db";
 import { swagger } from "@elysiajs/swagger";
 import authRoutes from "./auth/auth.routes";
-import adminQuizRoutes from "./quiz/quiz.routes";
+import adminQuizRoutes from "./quiz/admin/admin.routes";
+import studentQuizRoutes from "./quiz/student/student.routes";
+import adminEventRoutes from "./events/admin/admin.routes";
+import studentEventRoutes from "./events/student/student.routes";
+import paymentRoutes from "./events/shared/payment.routes";
 import { env, validateEnv } from "./config/env.config";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -20,7 +24,7 @@ app.use(
       info: {
         title: "Student Tribe API",
         version: "1.0.0",
-        description: "Student Tribe API - Authentication & Quiz Management System",
+        description: "Student Tribe API - Authentication, Quiz & Event Management System",
       },
       tags: [
         {
@@ -42,6 +46,58 @@ app.use(
         {
           name: "Admin - Analytics",
           description: "View quiz statistics and participant data",
+        },
+        {
+          name: "Student - Quizzes",
+          description: "Browse and participate in quizzes",
+        },
+        {
+          name: "Student - Quiz Attempts",
+          description: "Start, submit answers, and complete quizzes",
+        },
+        {
+          name: "Student - Leaderboard",
+          description: "View quiz rankings and scores",
+        },
+        {
+          name: "Admin - Event Categories",
+          description: "Manage event categories",
+        },
+        {
+          name: "Admin - Events",
+          description: "Create and manage events",
+        },
+        {
+          name: "Admin - Event Tickets",
+          description: "Manage event ticket categories",
+        },
+        {
+          name: "Admin - Event Orders",
+          description: "View and manage event orders",
+        },
+        {
+          name: "Admin - Event Attendees",
+          description: "View and check-in event attendees",
+        },
+        {
+          name: "Student - Events",
+          description: "Browse and view event details",
+        },
+        {
+          name: "Student - Event Booking",
+          description: "Book event tickets",
+        },
+        {
+          name: "Student - Event Orders",
+          description: "View booking history",
+        },
+        {
+          name: "Student - Event Tickets",
+          description: "View and manage event tickets",
+        },
+        {
+          name: "Payments",
+          description: "Payment webhooks and order expiry management",
         },
       ],
       components: {
@@ -97,7 +153,15 @@ app.get("/debug-ip", async () => {
 });
 
 // API routes
-app.group("/api", (app) => app.use(authRoutes).use(adminQuizRoutes));
+app.group("/api", (app) =>
+  app
+    .use(authRoutes)
+    .use(adminQuizRoutes)
+    .use(studentQuizRoutes)
+    .use(adminEventRoutes)
+    .use(studentEventRoutes)
+    .use(paymentRoutes)
+);
 
 // 404 handler
 app.all("*", () => {
