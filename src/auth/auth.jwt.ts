@@ -11,7 +11,7 @@ const app = new Elysia().use(
   jwt({
     name: "jwt",
     secret: env.JWT_SECRET,
-    exp: "15m", // Short-lived token
+    exp: env.JWT_EXPIRES_IN, 
   })
 );
 
