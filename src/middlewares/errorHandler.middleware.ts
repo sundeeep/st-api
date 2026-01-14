@@ -81,10 +81,68 @@ export const globalErrorHandler = ({ code, error, set, path }: ErrorContext): Er
     error.code === "42703" ||
     error.cause?.name === "PostgresError"
   ) {
+    const dbErrorCode = error.code || error.cause?.code;
+    const dbErrorMessage = error.message || error.cause?.message || "";
+
+    // Detect UUID validation errors (invalid input syntax for type uuid)
+    // PostgreSQL error code: 22P02
+    if (dbErrorCode === "22P02" && dbErrorMessage.includes("uuid")) {
+      set.status = HttpStatus.BAD_REQUEST;
+      return {
+        success: false,
+        error: {
+          code: ErrorCode.VALIDATION_ERROR,
+          message: "Invalid ID format. Please provide a valid UUID.",
+          ...(env.isDevelopment() && {
+            details: {
+              message: dbErrorMessage,
+              code: dbErrorCode,
+            },
+            stack: error.stack,
+          }),
+        },
+        timestamp: new Date().toISOString(),
+        path,
+      };
+    }
+
+    // Detect missing column errors (schema mismatch)
+    // PostgreSQL error code: 42703
+    if (dbErrorCode === "42703") {
+      // Log full error for debugging (server-side only)
+      console.error("Database schema error:", {
+        message: dbErrorMessage,
+        code: dbErrorCode,
+        query: error.query,
+        path,
+      });
+
+      set.status = HttpStatus.INTERNAL_SERVER_ERROR;
+      return {
+        success: false,
+        error: {
+          code: ErrorCode.DATABASE_ERROR,
+          message: "Database schema mismatch. Please contact support.",
+          // Only show details in development
+          ...(env.isDevelopment() && {
+            details: {
+              message: dbErrorMessage,
+              code: dbErrorCode,
+              query: error.query,
+            },
+            stack: error.stack,
+          }),
+        },
+        timestamp: new Date().toISOString(),
+        path,
+      };
+    }
+
+    // Other database errors
     // Log full error for debugging (server-side only)
     console.error("Database error:", {
-      message: error.message,
-      code: error.code || error.cause?.code,
+      message: dbErrorMessage,
+      code: dbErrorCode,
       query: error.query,
       path,
     });
@@ -98,8 +156,8 @@ export const globalErrorHandler = ({ code, error, set, path }: ErrorContext): Er
         // Only show details in development
         ...(env.isDevelopment() && {
           details: {
-            message: error.message || error.cause?.message,
-            code: error.code || error.cause?.code,
+            message: dbErrorMessage,
+            code: dbErrorCode,
             query: error.query,
           },
           stack: error.stack,

@@ -36,7 +36,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quiz Categories"],
@@ -53,7 +53,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       body: t.Object({
         name: t.Optional(t.String({ minLength: 2, maxLength: 100 })),
@@ -74,7 +74,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quiz Categories"],
@@ -91,7 +91,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       body: t.Object({
-        categoryId: t.Optional(t.String()),
+        categoryId: t.Optional(t.String({ format: "uuid" })),
         quizName: t.String({ minLength: 3, maxLength: 200 }),
         quizType: t.Union([
           t.Literal("timed"),
@@ -138,7 +138,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     {
       query: t.Optional(
         t.Object({
-          categoryId: t.Optional(t.String()),
+          categoryId: t.Optional(t.String({ format: "uuid" })),
           status: t.Optional(t.String()),
           quizType: t.Optional(t.String()),
           search: t.Optional(t.String()),
@@ -161,7 +161,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quizzes"],
@@ -178,10 +178,10 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       body: t.Object({
-        categoryId: t.Optional(t.String()),
+        categoryId: t.Optional(t.String({ format: "uuid" })),
         quizName: t.Optional(t.String({ minLength: 3, maxLength: 200 })),
         quizType: t.Optional(
           t.Union([
@@ -240,7 +240,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quizzes"],
@@ -257,7 +257,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quizzes"],
@@ -274,7 +274,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       body: t.Object({
         questions: t.Array(
@@ -308,7 +308,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quiz Questions"],
@@ -325,7 +325,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        questionId: t.String(),
+        questionId: t.String({ format: "uuid" }),
       }),
       body: t.Object({
         questionText: t.Optional(t.String({ minLength: 5, maxLength: 1000 })),
@@ -357,7 +357,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        questionId: t.String(),
+        questionId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Quiz Questions"],
@@ -374,7 +374,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Analytics"],
@@ -391,7 +391,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
+        id: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Analytics"],
@@ -408,8 +408,8 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
     },
     {
       params: t.Object({
-        id: t.String(),
-        userId: t.String(),
+        id: t.String({ format: "uuid" }),
+        userId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Admin - Analytics"],

@@ -14,8 +14,21 @@ export async function authenticate(context: Context): Promise<AuthenticatedConte
     const authHeader = context.request.headers.get("authorization");
     const token = extractTokenFromHeader(authHeader);
 
+    // 1. Verify JWT token (signature, expiry)
     const payload = await verifyToken(token);
 
+    // 2. Verify session still exists in Redis (prevents use of logged-out tokens)
+    const session = await getSession(payload.sessionId);
+    if (!session) {
+      throw UnauthorizedError("Session expired or invalid. Please login again.");
+    }
+
+    // 3. Verify session userId matches JWT userId (security check)
+    if (session.userId !== payload.userId) {
+      throw UnauthorizedError("Session mismatch. Please login again.");
+    }
+
+    // 4. Get user data
     const user = await getUserById(payload.userId);
 
     const authContext = context as AuthenticatedContext;
