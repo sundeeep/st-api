@@ -52,6 +52,19 @@ function isValidPhone(phone: string): boolean {
 }
 
 /**
+ * Remove country code from formatted phone number
+ * Input: "+919876543210"
+ * Output: "9876543210"
+ */
+function removeCountryCode(formattedPhone: string): string {
+  // Remove the + and country code prefix
+  if (formattedPhone.startsWith(`+${AUTH_CONFIG.PHONE.COUNTRY_CODE}`)) {
+    return formattedPhone.substring(3); // Remove "+91"
+  }
+  return formattedPhone.replace(/^\+?\d{1,3}/, ""); // Fallback: remove any country code
+}
+
+/**
  * Send OTP to mobile number
  */
 export async function sendOTP(mobile: string) {
@@ -102,7 +115,7 @@ export async function sendOTP(mobile: string) {
   }
 
   return {
-    mobile: formattedMobile,
+    mobile: removeCountryCode(formattedMobile),
     otpId,
     expiresIn: AUTH_CONFIG.OTP.EXPIRY_SECONDS,
   };
@@ -245,7 +258,7 @@ export async function resendOTP(mobile: string, retryType: "text" | "voice" = "t
   }
 
   return {
-    mobile: formattedMobile,
+    mobile: removeCountryCode(formattedMobile),
     otpId,
     expiresIn: AUTH_CONFIG.OTP.EXPIRY_SECONDS,
   };
