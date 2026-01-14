@@ -68,8 +68,7 @@ export async function browseQuizzes(
         participantsCount: quizzes.participantsCount,
         startDateTime: quizzes.startDate,
         endDateTime: quizzes.endDate,
-        rewardsType: quizzes.rewardsType,
-        rewardsValue: quizzes.rewardsValue,
+        rewards: quizzes.rewards,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -98,8 +97,11 @@ export async function browseQuizzes(
       participantsCount: q.participantsCount || 0,
       startDateTime: q.startDateTime?.toISOString(),
       endDateTime: q.endDateTime?.toISOString(),
-      rewardsType: q.rewardsType || undefined,
-      rewardsValue: q.rewardsValue?.toString(),
+      rewards: q.rewards
+        ? typeof q.rewards === "string"
+          ? JSON.parse(q.rewards)
+          : q.rewards
+        : undefined,
     })),
     total: totalCount[0]?.count || 0,
   };
@@ -139,8 +141,7 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
       participantsCount: quizzes.participantsCount,
       startDate: quizzes.startDate,
       endDate: quizzes.endDate,
-      rewardsType: quizzes.rewardsType,
-      rewardsValue: quizzes.rewardsValue,
+      rewards: quizzes.rewards,
       createdAt: quizzes.createdAt,
       status: quizzes.status,
       averageScore: quizzes.averageScore,
@@ -185,8 +186,11 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     participantsCount: q.participantsCount || 0,
     startDateTime: q.startDate?.toISOString(),
     endDateTime: q.endDate?.toISOString(),
-    rewardsType: q.rewardsType || undefined,
-    rewardsValue: q.rewardsValue?.toString(),
+    rewards: q.rewards
+      ? typeof q.rewards === "string"
+        ? JSON.parse(q.rewards)
+        : q.rewards
+      : undefined,
     createdAt: q.createdAt.toISOString(),
     hasAttempted: userAttempts.length > 0,
     myBestScore: userAttempts[0]?.score ? Number(userAttempts[0].score) : undefined,

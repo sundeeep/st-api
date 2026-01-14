@@ -21,6 +21,12 @@ export interface UpdateCategoryBody {
   description?: string;
 }
 
+export interface Reward {
+  type: "ST_COINS" | "MOVIE_TICKETS";
+  value: number;
+  info: string;
+}
+
 export interface CreateQuizBody {
   categoryId?: string;
   quizName: string;
@@ -30,8 +36,7 @@ export interface CreateQuizBody {
     rules: string[];
   };
   bannerImage?: string;
-  rewardsType?: "points" | "badge" | "certificate" | "cash" | "none";
-  rewardsValue?: number;
+  rewards?: Reward[];
   timerDuration?: number;
   startDate: string;
   endDate: string;
@@ -50,8 +55,7 @@ export interface UpdateQuizBody {
     rules: string[];
   };
   bannerImage?: string;
-  rewardsType?: "points" | "badge" | "certificate" | "cash" | "none";
-  rewardsValue?: number;
+  rewards?: Reward[];
   timerDuration?: number;
   startDate?: string;
   endDate?: string;
@@ -59,6 +63,7 @@ export interface UpdateQuizBody {
   maxAttempts?: number;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
+  status?: "draft" | "scheduled" | "active" | "completed" | "archived";
 }
 
 export interface QuestionOption {
@@ -105,8 +110,7 @@ export interface QuizWithDetails {
     rules: string[];
   };
   bannerImage?: string;
-  rewardsType?: string;
-  rewardsValue?: string;
+  rewards?: Reward[];
   timerDuration?: number;
   startDate: Date;
   endDate: Date;

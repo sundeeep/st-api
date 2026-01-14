@@ -2,6 +2,12 @@
  * Student Quiz API Types
  */
 
+export interface Reward {
+  type: "ST_COINS" | "MOVIE_TICKETS";
+  value: number;
+  info: string;
+}
+
 export interface BrowseQuizzesFilters {
   categoryId?: string;
   quizType?: "timed" | "practice" | "competitive" | "assessment";
@@ -24,8 +30,7 @@ export interface QuizListItem {
   participantsCount: number;
   startDateTime?: string;
   endDateTime?: string;
-  rewardsType?: string;
-  rewardsValue?: string;
+  rewards?: Reward[];
 }
 
 export interface CategoryListItem {
@@ -54,8 +59,7 @@ export interface QuizDetails {
   participantsCount: number;
   startDateTime?: string;
   endDateTime?: string;
-  rewardsType?: string;
-  rewardsValue?: string;
+  rewards?: Reward[];
   createdAt: string;
   hasAttempted: boolean;
   myBestScore?: number;

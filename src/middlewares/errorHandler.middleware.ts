@@ -75,16 +75,64 @@ export const globalErrorHandler = ({ code, error, set, path }: ErrorContext): Er
     };
   }
 
+  // Handle database errors (PostgresError, etc.)
+  if (
+    error.name === "PostgresError" ||
+    error.code === "42703" ||
+    error.cause?.name === "PostgresError"
+  ) {
+    // Log full error for debugging (server-side only)
+    console.error("Database error:", {
+      message: error.message,
+      code: error.code || error.cause?.code,
+      query: error.query,
+      path,
+    });
+
+    set.status = HttpStatus.INTERNAL_SERVER_ERROR;
+    return {
+      success: false,
+      error: {
+        code: ErrorCode.DATABASE_ERROR,
+        message: "A database error occurred. Please try again later.",
+        // Only show details in development
+        ...(env.isDevelopment() && {
+          details: {
+            message: error.message || error.cause?.message,
+            code: error.code || error.cause?.code,
+            query: error.query,
+          },
+          stack: error.stack,
+        }),
+      },
+      timestamp: new Date().toISOString(),
+      path,
+    };
+  }
+
   // Handle unknown errors
   set.status = error.status || HttpStatus.INTERNAL_SERVER_ERROR;
+
+  // Log error for debugging (server-side only)
+  console.error("Unhandled error:", {
+    message: error.message,
+    name: error.name,
+    code: error.code,
+    path,
+    stack: error.stack,
+  });
+
   return {
     success: false,
     error: {
       code: error.errorCode || ErrorCode.INTERNAL_ERROR,
-      message: error.message || "An unexpected error occurred",
+      message: env.isDevelopment()
+        ? error.message || "An unexpected error occurred"
+        : "An unexpected error occurred. Please try again later.",
+      // Only show details in development
       ...(env.isDevelopment() && {
-        stack: error.stack,
         details: error,
+        stack: error.stack,
       }),
     },
     timestamp: new Date().toISOString(),

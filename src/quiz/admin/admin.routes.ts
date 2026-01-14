@@ -104,16 +104,16 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
           rules: t.Array(t.String()),
         }),
         bannerImage: t.Optional(t.String()),
-        rewardsType: t.Optional(
-          t.Union([
-            t.Literal("points"),
-            t.Literal("badge"),
-            t.Literal("certificate"),
-            t.Literal("cash"),
-            t.Literal("none"),
-          ])
+        rewards: t.Optional(
+          t.Array(
+            t.Object({
+              type: t.Union([t.Literal("ST_COINS"), t.Literal("MOVIE_TICKETS")]),
+              value: t.Number({ minimum: 0 }),
+              info: t.String(),
+            }),
+            { minItems: 0 }
+          )
         ),
-        rewardsValue: t.Optional(t.Number()),
         timerDuration: t.Optional(t.Number()),
         startDate: t.String(),
         endDate: t.String(),
@@ -198,16 +198,16 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
           })
         ),
         bannerImage: t.Optional(t.String()),
-        rewardsType: t.Optional(
-          t.Union([
-            t.Literal("points"),
-            t.Literal("badge"),
-            t.Literal("certificate"),
-            t.Literal("cash"),
-            t.Literal("none"),
-          ])
+        rewards: t.Optional(
+          t.Array(
+            t.Object({
+              type: t.Union([t.Literal("ST_COINS"), t.Literal("MOVIE_TICKETS")]),
+              value: t.Number({ minimum: 0 }),
+              info: t.String(),
+            }),
+            { minItems: 0 }
+          )
         ),
-        rewardsValue: t.Optional(t.Number()),
         timerDuration: t.Optional(t.Number()),
         startDate: t.Optional(t.String()),
         endDate: t.Optional(t.String()),
@@ -215,6 +215,15 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
         maxAttempts: t.Optional(t.Number()),
         shuffleQuestions: t.Optional(t.Boolean()),
         shuffleOptions: t.Optional(t.Boolean()),
+        status: t.Optional(
+          t.Union([
+            t.Literal("draft"),
+            t.Literal("scheduled"),
+            t.Literal("active"),
+            t.Literal("completed"),
+            t.Literal("archived"),
+          ])
+        ),
       }),
       detail: {
         tags: ["Admin - Quizzes"],

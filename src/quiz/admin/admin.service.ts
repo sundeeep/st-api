@@ -95,8 +95,7 @@ export async function createQuiz(userId: string, data: CreateQuizBody) {
       quizType: data.quizType,
       about: data.about,
       bannerImage: data.bannerImage,
-      rewardsType: data.rewardsType,
-      rewardsValue: data.rewardsValue?.toString(),
+      rewards: data.rewards ? JSON.stringify(data.rewards) : null,
       timerDuration: data.timerDuration,
       startDate,
       endDate,
@@ -211,7 +210,8 @@ export async function updateQuiz(id: string, data: UpdateQuizBody) {
   if (data.startDate) updateData.startDate = new Date(data.startDate);
   if (data.endDate) updateData.endDate = new Date(data.endDate);
   if (data.revealAnswersDate) updateData.revealAnswersDate = new Date(data.revealAnswersDate);
-  if (data.rewardsValue !== undefined) updateData.rewardsValue = data.rewardsValue.toString();
+  if (data.rewards !== undefined)
+    updateData.rewards = data.rewards ? JSON.stringify(data.rewards) : null;
 
   const [updated] = await db.update(quizzes).set(updateData).where(eq(quizzes.id, id)).returning();
 

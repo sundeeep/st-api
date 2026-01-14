@@ -8,9 +8,13 @@ import {
   decimal,
   jsonb,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { usersProfile } from "../../auth/auth.schema";
+
+// Reward type enum
+export const rewardTypeEnum = pgEnum("reward_type", ["ST_COINS", "MOVIE_TICKETS"]);
 
 export const quizCategories = pgTable(
   "quiz_categories",
@@ -43,8 +47,7 @@ export const quizzes = pgTable(
     about: jsonb("about").notNull().default({ description: "", rules: [] }),
     bannerImage: text("bannerImage"),
 
-    rewardsType: text("rewardsType"),
-    rewardsValue: decimal("rewardsValue", { precision: 10, scale: 2 }),
+    rewards: jsonb("rewards").default([]),
 
     timerDuration: integer("timerDuration"),
 
