@@ -58,10 +58,15 @@ export const logoutHandler = async (context: Context): Promise<SuccessResponse> 
   const sessionId = context.request.headers.get("x-session-id");
 
   if (!sessionId) {
-    return messageResponse("No session found");
+    throw UnauthorizedError("No session found. Please provide X-Session-Id header.");
   }
 
-  await authService.logout(sessionId);
+  const deleted = await authService.logout(sessionId);
+
+  if (!deleted) {
+    throw UnauthorizedError("Session not found or already logged out.");
+  }
+
   return messageResponse("Logged out successfully");
 };
 
