@@ -163,9 +163,25 @@ app.group("/api", (app) =>
     .use(paymentRoutes)
 );
 
+// Handle favicon requests silently (browsers auto-request this)
+app.get("/favicon.ico", ({ set }) => {
+  set.status = 204; // No Content
+  return;
+});
+
 // 404 handler
-app.all("*", () => {
-  throw new Error("Route not found");
+app.all("*", ({ set, path }) => {
+  set.status = 404;
+  return {
+    success: false,
+    error: {
+      code: "NOT_FOUND",
+      message: "Route not found",
+      details: `The requested route ${path} does not exist`,
+    },
+    timestamp: new Date().toISOString(),
+    path,
+  };
 });
 
 // Start server

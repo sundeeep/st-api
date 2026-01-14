@@ -1,6 +1,6 @@
 import type { Context } from "elysia";
 import * as quizService from "./admin.service";
-import { successResponse } from "../../utils/response.util";
+import { successResponse, paginatedResponse } from "../../utils/response.util";
 import type { SuccessResponse } from "../../types/response.types";
 import type {
   AuthenticatedContext,
@@ -54,7 +54,13 @@ export const createQuizHandler = async (
 export const getQuizzesHandler = async (context: Context): Promise<SuccessResponse> => {
   const query = context.query as QuizFilters;
   const result = await quizService.getQuizzes(query);
-  return successResponse(result, "Quizzes fetched successfully");
+  return paginatedResponse(
+    result.data,
+    result.pagination.page,
+    result.pagination.limit,
+    result.pagination.total,
+    "Quizzes fetched successfully"
+  );
 };
 
 export const getQuizHandler = async (context: Context): Promise<SuccessResponse> => {

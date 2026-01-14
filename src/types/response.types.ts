@@ -3,11 +3,11 @@ export interface SuccessResponse<T = unknown> {
   success: true;
   message?: string;
   data?: T;
-  meta?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    [key: string]: unknown;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
 }
 

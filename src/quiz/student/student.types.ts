@@ -24,10 +24,6 @@ export interface QuizListItem {
   bannerImage?: string;
   timerDuration?: number;
   totalQuestions: number;
-  totalMarks: number;
-  passingMarks?: number;
-  difficulty?: string;
-  participantsCount: number;
   startDateTime?: string;
   endDateTime?: string;
   rewards?: Reward[];
@@ -37,8 +33,6 @@ export interface CategoryListItem {
   id: string;
   name: string;
   description?: string;
-  quizzesCount: number;
-  participantsCount: number;
 }
 
 export interface QuizDetails {
@@ -54,9 +48,6 @@ export interface QuizDetails {
   timerDuration?: number;
   totalQuestions: number;
   totalMarks: number;
-  passingMarks?: number;
-  difficulty?: string;
-  participantsCount: number;
   startDateTime?: string;
   endDateTime?: string;
   rewards?: Reward[];
@@ -191,7 +182,6 @@ export interface LeaderboardResponse {
     totalParticipants: number;
     averageScore: number;
     topScore: number;
-    passingMarks?: number;
   };
 }
 

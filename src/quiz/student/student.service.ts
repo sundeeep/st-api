@@ -64,8 +64,6 @@ export async function browseQuizzes(
         bannerImage: quizzes.bannerImage,
         timerDuration: quizzes.timerDuration,
         totalQuestions: quizzes.questionsCount,
-        totalMarks: quizzes.averageScore,
-        participantsCount: quizzes.participantsCount,
         startDateTime: quizzes.startDate,
         endDateTime: quizzes.endDate,
         rewards: quizzes.rewards,
@@ -91,10 +89,6 @@ export async function browseQuizzes(
       bannerImage: q.bannerImage || undefined,
       timerDuration: q.timerDuration || undefined,
       totalQuestions: q.totalQuestions || 0,
-      totalMarks: Number(q.totalMarks) || 0,
-      passingMarks: undefined,
-      difficulty: undefined,
-      participantsCount: q.participantsCount || 0,
       startDateTime: q.startDateTime?.toISOString(),
       endDateTime: q.endDateTime?.toISOString(),
       rewards: q.rewards
@@ -113,17 +107,14 @@ export async function getCategories(): Promise<CategoryListItem[]> {
       id: quizCategories.id,
       name: quizCategories.name,
       description: quizCategories.description,
-      quizzesCount: quizCategories.quizzesCount,
-      participantsCount: quizCategories.participantsCount,
     })
     .from(quizCategories)
     .orderBy(quizCategories.name);
 
   return categories.map((c) => ({
-    ...c,
+    id: c.id,
+    name: c.name,
     description: c.description || undefined,
-    quizzesCount: c.quizzesCount || 0,
-    participantsCount: c.participantsCount || 0,
   }));
 }
 
@@ -138,7 +129,6 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
       bannerImage: quizzes.bannerImage,
       timerDuration: quizzes.timerDuration,
       totalQuestions: quizzes.questionsCount,
-      participantsCount: quizzes.participantsCount,
       startDate: quizzes.startDate,
       endDate: quizzes.endDate,
       rewards: quizzes.rewards,
@@ -171,6 +161,15 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     .limit(1);
 
   const q = quiz[0];
+
+  // Calculate total marks from questions
+  const questions = await db
+    .select({ points: quizQuestions.points })
+    .from(quizQuestions)
+    .where(eq(quizQuestions.quizId, quizId));
+
+  const totalMarks = questions.reduce((sum, question) => sum + Number(question.points || 0), 0);
+
   return {
     id: q.id,
     quizName: q.quizName,
@@ -180,10 +179,7 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     bannerImage: q.bannerImage || undefined,
     timerDuration: q.timerDuration || undefined,
     totalQuestions: q.totalQuestions || 0,
-    totalMarks: Number(q.averageScore) * (q.totalQuestions || 0),
-    passingMarks: undefined,
-    difficulty: undefined,
-    participantsCount: q.participantsCount || 0,
+    totalMarks: totalMarks,
     startDateTime: q.startDate?.toISOString(),
     endDateTime: q.endDate?.toISOString(),
     rewards: q.rewards
@@ -842,7 +838,6 @@ export async function getLeaderboard(
       totalParticipants: Number(stats.totalParticipants) || 0,
       averageScore: Number(stats.averageScore) || 0,
       topScore: Number(stats.topScore) || 0,
-      passingMarks: undefined,
     },
   };
 }

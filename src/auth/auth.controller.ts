@@ -6,6 +6,7 @@ import type { SendOTPBody, VerifyOTPBody, ResendOTPBody, AuthenticatedContext } 
 import { generateToken } from "./auth.jwt";
 import { AUTH_CONFIG } from "./auth.config";
 import { UnauthorizedError } from "../utils/errors.util";
+import { getSession } from "./lib/session";
 
 /**
  * Send OTP to mobile number
@@ -59,6 +60,11 @@ export const logoutHandler = async (context: Context): Promise<SuccessResponse> 
 
   if (!sessionId) {
     throw UnauthorizedError("No session found. Please provide X-Session-Id header.");
+  }
+
+  const session = await getSession(sessionId);
+  if (!session) {
+    throw UnauthorizedError("Session not found. Please login again.");
   }
 
   const deleted = await authService.logout(sessionId);
