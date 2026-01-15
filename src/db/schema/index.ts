@@ -15,3 +15,5 @@ export * from "./opportunityApplications.schema";
 export * from "./usersProfile.schema";
 export * from "../../quiz/shared/schema";
 export * from "../../events/shared/schema";
+export * from "../../auth/auth.schema";
+export * from "../../interactions/shared/schema";

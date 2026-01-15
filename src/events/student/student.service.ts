@@ -24,8 +24,12 @@ import { EVENT_CONFIG } from "../shared/config";
 import { createRazorpayOrder } from "../shared/razorpay.util";
 import { env } from "../../config/env.config";
 import crypto from "crypto";
+import { checkUserInteractions } from "../../interactions/shared/interactions.service";
 
-export async function browseEvents(filters: EventListFilters): Promise<{
+export async function browseEvents(
+  filters: EventListFilters,
+  userId?: string
+): Promise<{
   events: EventListItem[];
   total: number;
   page: number;
@@ -85,6 +89,7 @@ export async function browseEvents(filters: EventListFilters): Promise<{
         state: events.state,
         totalCapacity: events.totalCapacity,
         status: events.status,
+        likeCount: events.likeCount,
       })
       .from(events)
       .leftJoin(eventCategories, eq(events.categoryId, eventCategories.id))
@@ -147,6 +152,15 @@ export async function browseEvents(filters: EventListFilters): Promise<{
 
   const statsMap = new Map(ticketStats.map((s) => [s.eventId, s]));
 
+  let likedSet = new Set<string>();
+  let bookmarkedSet = new Set<string>();
+
+  if (userId && eventIds.length > 0) {
+    const interactions = await checkUserInteractions(userId, "event", eventIds);
+    likedSet = new Set(interactions.liked);
+    bookmarkedSet = new Set(interactions.bookmarked);
+  }
+
   const eventsWithStats: EventListItem[] = eventsList.map((event) => {
     const stats = statsMap.get(event.id) || { soldCount: 0, minPrice: null, maxPrice: null };
     const totalCapacity = event.totalCapacity || 0;
@@ -170,6 +184,9 @@ export async function browseEvents(filters: EventListFilters): Promise<{
       minPrice: stats.minPrice || 0,
       maxPrice: stats.maxPrice || 0,
       status: event.status as "draft" | "published" | "cancelled" | "completed",
+      likeCount: event.likeCount || 0,
+      isLiked: userId ? likedSet.has(event.id) : undefined,
+      isBookmarked: userId ? bookmarkedSet.has(event.id) : undefined,
     };
   });
 
@@ -185,7 +202,7 @@ export async function browseEvents(filters: EventListFilters): Promise<{
   };
 }
 
-export async function getEventDetails(eventId: string): Promise<EventDetail> {
+export async function getEventDetails(eventId: string, userId?: string): Promise<EventDetail> {
   const eventData = await db
     .select({
       id: events.id,
@@ -209,6 +226,7 @@ export async function getEventDetails(eventId: string): Promise<EventDetail> {
       hostEmail: events.hostEmail,
       hostPhone: events.hostPhone,
       status: events.status,
+      likeCount: events.likeCount,
     })
     .from(events)
     .leftJoin(eventCategories, eq(events.categoryId, eventCategories.id))
@@ -265,6 +283,15 @@ export async function getEventDetails(eventId: string): Promise<EventDetail> {
     isActive: tc.isActive || false,
   }));
 
+  let isLiked: boolean | undefined;
+  let isBookmarked: boolean | undefined;
+
+  if (userId) {
+    const interactions = await checkUserInteractions(userId, "event", [eventId]);
+    isLiked = interactions.liked.includes(eventId);
+    isBookmarked = interactions.bookmarked.includes(eventId);
+  }
+
   return {
     id: event.id,
     categoryId: event.categoryId,
@@ -289,6 +316,9 @@ export async function getEventDetails(eventId: string): Promise<EventDetail> {
     hostPhone: event.hostPhone,
     status: event.status as "draft" | "published" | "cancelled" | "completed",
     ticketCategories,
+    likeCount: event.likeCount || 0,
+    isLiked,
+    isBookmarked,
   };
 }
 

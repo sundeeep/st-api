@@ -11,6 +11,7 @@ import {
 } from "../shared/schema";
 import { ValidationError, NotFoundError, BadRequestError } from "../../utils/errors.util";
 import { QUIZ_CONFIG } from "../shared/config";
+import { checkUserInteractions } from "../../interactions/shared/interactions.service";
 import type {
   BrowseQuizzesFilters,
   QuizListItem,
@@ -67,6 +68,7 @@ export async function browseQuizzes(
         startDateTime: quizzes.startDate,
         endDateTime: quizzes.endDate,
         rewards: quizzes.rewards,
+        likeCount: quizzes.likeCount,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -79,6 +81,11 @@ export async function browseQuizzes(
       .from(quizzes)
       .where(and(...conditions)),
   ]);
+
+  const quizIds = quizList.map((q) => q.id);
+  const interactions = await checkUserInteractions(userId, "quiz", quizIds);
+  const likedSet = new Set(interactions.liked);
+  const bookmarkedSet = new Set(interactions.bookmarked);
 
   return {
     quizzes: quizList.map((q) => ({
@@ -96,6 +103,9 @@ export async function browseQuizzes(
           ? JSON.parse(q.rewards)
           : q.rewards
         : undefined,
+      likeCount: q.likeCount || 0,
+      isLiked: likedSet.has(q.id),
+      isBookmarked: bookmarkedSet.has(q.id),
     })),
     total: totalCount[0]?.count || 0,
   };
@@ -135,6 +145,7 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
       createdAt: quizzes.createdAt,
       status: quizzes.status,
       averageScore: quizzes.averageScore,
+      likeCount: quizzes.likeCount,
     })
     .from(quizzes)
     .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -170,6 +181,8 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
 
   const totalMarks = questions.reduce((sum, question) => sum + Number(question.points || 0), 0);
 
+  const interactions = await checkUserInteractions(userId, "quiz", [quizId]);
+
   return {
     id: q.id,
     quizName: q.quizName,
@@ -190,6 +203,9 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     createdAt: q.createdAt.toISOString(),
     hasAttempted: userAttempts.length > 0,
     myBestScore: userAttempts[0]?.score ? Number(userAttempts[0].score) : undefined,
+    likeCount: q.likeCount || 0,
+    isLiked: interactions.liked.includes(quizId),
+    isBookmarked: interactions.bookmarked.includes(quizId),
   };
 }
 

@@ -1,11 +1,14 @@
 import { Context } from "elysia";
 import * as eventService from "./student.service";
-import { AuthenticatedContext } from "../../auth/auth.middleware";
-import { SuccessResponse, successResponse } from "../../utils/response.util";
+import type { AuthenticatedContext } from "../../auth/auth.types";
+import { successResponse } from "../../utils/response.util";
+import type { SuccessResponse } from "../../types/response.types";
 import { EventListFilters, BookTicketRequest } from "./student.types";
 
 export const browseEventsHandler = async (context: Context): Promise<SuccessResponse> => {
   const query = context.query as Record<string, string>;
+  const authContext = context as Partial<AuthenticatedContext>;
+  const userId = authContext.user?.id;
 
   const filters: EventListFilters = {
     categoryId: query.categoryId,
@@ -18,17 +21,21 @@ export const browseEventsHandler = async (context: Context): Promise<SuccessResp
     limit: query.limit ? parseInt(query.limit, 10) : undefined,
   };
 
-  const result = await eventService.browseEvents(filters);
+  const result = await eventService.browseEvents(filters, userId);
   return successResponse(result, "Events fetched successfully");
 };
 
 export const getEventDetailsHandler = async (context: Context): Promise<SuccessResponse> => {
   const { id } = context.params as { id: string };
-  const event = await eventService.getEventDetails(id);
+  const authContext = context as Partial<AuthenticatedContext>;
+  const userId = authContext.user?.id;
+  const event = await eventService.getEventDetails(id, userId);
   return successResponse(event, "Event details fetched successfully");
 };
 
-export const bookTicketsHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
+export const bookTicketsHandler = async (
+  context: AuthenticatedContext & Context
+): Promise<SuccessResponse> => {
   const { id } = context.params as { id: string };
   const request = context.body as BookTicketRequest;
   const userId = context.user.id;
@@ -40,7 +47,9 @@ export const bookTicketsHandler = async (context: AuthenticatedContext): Promise
   );
 };
 
-export const getMyOrdersHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
+export const getMyOrdersHandler = async (
+  context: AuthenticatedContext & Context
+): Promise<SuccessResponse> => {
   const query = context.query as Record<string, string>;
   const userId = context.user.id;
   const page = query.page ? parseInt(query.page, 10) : 1;
@@ -50,7 +59,9 @@ export const getMyOrdersHandler = async (context: AuthenticatedContext): Promise
   return successResponse(result, "Orders fetched successfully");
 };
 
-export const getMyTicketsHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
+export const getMyTicketsHandler = async (
+  context: AuthenticatedContext & Context
+): Promise<SuccessResponse> => {
   const query = context.query as Record<string, string>;
   const userId = context.user.id;
   const page = query.page ? parseInt(query.page, 10) : 1;
@@ -60,7 +71,9 @@ export const getMyTicketsHandler = async (context: AuthenticatedContext): Promis
   return successResponse(result, "Tickets fetched successfully");
 };
 
-export const getTicketDetailsHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
+export const getTicketDetailsHandler = async (
+  context: AuthenticatedContext & Context
+): Promise<SuccessResponse> => {
   const { ticketId } = context.params as { ticketId: string };
   const userId = context.user.id;
 

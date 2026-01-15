@@ -27,6 +27,9 @@ export interface QuizListItem {
   startDateTime?: string;
   endDateTime?: string;
   rewards?: Reward[];
+  likeCount: number;
+  isLiked: boolean;
+  isBookmarked: boolean;
 }
 
 export interface CategoryListItem {
@@ -54,6 +57,9 @@ export interface QuizDetails {
   createdAt: string;
   hasAttempted: boolean;
   myBestScore?: number;
+  likeCount: number;
+  isLiked: boolean;
+  isBookmarked: boolean;
 }
 
 export interface StartQuizResponse {

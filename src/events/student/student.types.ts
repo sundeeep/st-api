@@ -26,6 +26,9 @@ export interface EventListItem {
   minPrice: number;
   maxPrice: number;
   status: "draft" | "published" | "cancelled" | "completed";
+  likeCount: number;
+  isLiked?: boolean;
+  isBookmarked?: boolean;
 }
 
 export interface EventDetail {
@@ -54,6 +57,9 @@ export interface EventDetail {
   hostPhone: string | null;
   status: "draft" | "published" | "cancelled" | "completed";
   ticketCategories: TicketCategoryDetail[];
+  likeCount: number;
+  isLiked?: boolean;
+  isBookmarked?: boolean;
 }
 
 export interface TicketCategoryDetail {
