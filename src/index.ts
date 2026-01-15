@@ -8,6 +8,7 @@ import studentQuizRoutes from "./quiz/student/student.routes";
 import adminEventRoutes from "./events/admin/admin.routes";
 import studentEventRoutes from "./events/student/student.routes";
 import paymentRoutes from "./events/shared/payment.routes";
+import studentInteractionsRoutes from "./interactions/student/student.routes";
 import { env, validateEnv } from "./config/env.config";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -99,6 +100,10 @@ app.use(
           name: "Payments",
           description: "Payment webhooks and order expiry management",
         },
+        {
+          name: "Student - Interactions",
+          description: "Like and bookmark events and quizzes",
+        },
       ],
       components: {
         securitySchemes: {
@@ -161,6 +166,7 @@ app.group("/api", (app) =>
     .use(adminEventRoutes)
     .use(studentEventRoutes)
     .use(paymentRoutes)
+    .use(studentInteractionsRoutes)
 );
 
 // Handle favicon requests silently (browsers auto-request this)

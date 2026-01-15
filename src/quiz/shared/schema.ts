@@ -13,8 +13,22 @@ import {
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { usersProfile } from "../../auth/auth.schema";
 
-// Reward type enum
 export const rewardTypeEnum = pgEnum("reward_type", ["ST_COINS", "MOVIE_TICKETS"]);
+export const quizStatusEnum = pgEnum("quiz_status", [
+  "draft",
+  "scheduled",
+  "active",
+  "completed",
+  "archived",
+]);
+export const quizTypeEnum = pgEnum("quiz_type", ["timed", "practice", "competitive", "assessment"]);
+export const attemptStatusEnum = pgEnum("attempt_status", [
+  "in_progress",
+  "completed",
+  "submitted",
+  "abandoned",
+]);
+export const rewardStatusEnum = pgEnum("reward_status", ["earned", "claimed"]);
 
 export const quizCategories = pgTable(
   "quiz_categories",
@@ -22,6 +36,7 @@ export const quizCategories = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull().unique(),
     description: text("description"),
+    icon: text("icon"),
     quizzesCount: integer("quizzesCount").default(0),
     participantsCount: integer("participantsCount").default(0),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -43,7 +58,7 @@ export const quizzes = pgTable(
       .references(() => usersProfile.id),
     categoryId: uuid("categoryId").references(() => quizCategories.id),
     quizName: text("quizName").notNull(),
-    quizType: text("quizType").notNull(),
+    quizType: quizTypeEnum("quizType").notNull(),
     about: jsonb("about").notNull().default({ description: "", rules: [] }),
     bannerImage: text("bannerImage"),
 
@@ -63,8 +78,9 @@ export const quizzes = pgTable(
     participantsCount: integer("participantsCount").default(0),
     completedCount: integer("completedCount").default(0),
     averageScore: decimal("averageScore", { precision: 5, scale: 2 }).default("0"),
+    likeCount: integer("likeCount").default(0),
 
-    status: text("status").default("draft"),
+    status: quizStatusEnum("status").default("draft"),
     isActive: boolean("isActive").default(true),
     publishedAt: timestamp("publishedAt"),
 
@@ -147,7 +163,7 @@ export const userQuizAttempts = pgTable(
     scoreObtained: decimal("scoreObtained", { precision: 5, scale: 2 }).default("0"),
     scorePercentage: decimal("scorePercentage", { precision: 5, scale: 2 }).default("0"),
 
-    status: text("status").default("in_progress"),
+    status: attemptStatusEnum("status").default("in_progress"),
 
     rewardEarned: boolean("rewardEarned").default(false),
     rewardValue: decimal("rewardValue", { precision: 10, scale: 2 }),
@@ -240,12 +256,12 @@ export const userQuizRewards = pgTable(
       .notNull()
       .references(() => userQuizAttempts.id, { onDelete: "cascade" }),
 
-    rewardType: text("rewardType").notNull(),
+    rewardType: rewardTypeEnum("rewardType").notNull(),
     rewardValue: decimal("rewardValue", { precision: 10, scale: 2 }),
 
     earnedAt: timestamp("earnedAt").defaultNow().notNull(),
     claimedAt: timestamp("claimedAt"),
-    status: text("status").default("earned"),
+    status: rewardStatusEnum("status").default("earned"),
   },
   (table) => [
     {

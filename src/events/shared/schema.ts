@@ -10,9 +10,25 @@ import {
   date,
   time,
   index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { usersProfile } from "../../auth/auth.schema";
+
+export const eventStatusEnum = pgEnum("event_status", [
+  "draft",
+  "published",
+  "cancelled",
+  "completed",
+]);
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "completed",
+  "failed",
+  "expired",
+]);
+export const ticketStatusEnum = pgEnum("ticket_status", ["valid", "used", "cancelled"]);
+export const platformFeeTypeEnum = pgEnum("platform_fee_type", ["percentage", "fixed", "both"]);
 
 export const eventCategories = pgTable(
   "event_categories",
@@ -57,8 +73,9 @@ export const events = pgTable(
 
     totalCapacity: integer("totalCapacity"),
     bookedCount: integer("bookedCount").default(0),
+    likeCount: integer("likeCount").default(0),
 
-    platformFeeType: text("platformFeeType").default("percentage"),
+    platformFeeType: platformFeeTypeEnum("platformFeeType").default("percentage"),
     platformFeePercentage: decimal("platformFeePercentage", { precision: 5, scale: 2 }).default(
       "0"
     ),
@@ -68,7 +85,7 @@ export const events = pgTable(
     hostEmail: text("hostEmail"),
     hostPhone: text("hostPhone"),
 
-    status: text("status").default("draft"),
+    status: eventStatusEnum("status").default("draft"),
     isActive: boolean("isActive").default(true),
     publishedAt: timestamp("publishedAt"),
 
@@ -135,7 +152,7 @@ export const eventOrders = pgTable(
     platformFee: decimal("platformFee", { precision: 10, scale: 2 }).notNull().default("0"),
     totalAmount: decimal("totalAmount", { precision: 10, scale: 2 }).notNull(),
 
-    paymentStatus: text("paymentStatus").default("pending"),
+    paymentStatus: paymentStatusEnum("paymentStatus").default("pending"),
     paymentMethod: text("paymentMethod"),
     razorpayOrderId: text("razorpayOrderId"),
     razorpayPaymentId: text("razorpayPaymentId"),
@@ -202,7 +219,7 @@ export const eventTickets = pgTable(
     attendeeEmail: text("attendeeEmail"),
     attendeePhone: text("attendeePhone"),
 
-    status: text("status").default("valid"),
+    status: ticketStatusEnum("status").default("valid"),
     checkedInAt: timestamp("checkedInAt"),
     checkedInBy: uuid("checkedInBy").references(() => usersProfile.id),
 

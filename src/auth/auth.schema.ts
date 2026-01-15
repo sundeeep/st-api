@@ -1,5 +1,18 @@
-import { pgTable, uuid, text, boolean, date, integer, timestamp, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  date,
+  integer,
+  timestamp,
+  index,
+  pgEnum,
+} from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+
+export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+export const genderEnum = pgEnum("gender", ["male", "female", "other", "prefer_not_to_say"]);
 
 export const usersProfile = pgTable(
   "usersProfile",
@@ -11,9 +24,9 @@ export const usersProfile = pgTable(
     aboutMe: text("aboutMe"),
     location: text("location"),
     birthday: date("birthday"),
-    gender: text("gender"), // 'male', 'female', 'other', 'prefer_not_to_say'
-    mobile: text("mobile").unique().notNull(), // ✅ Mobile is primary identifier
-    role: text("role").default("user").notNull(), // 'user', 'admin'
+    gender: genderEnum("gender"),
+    mobile: text("mobile").unique().notNull(),
+    role: userRoleEnum("role").default("user").notNull(),
     profileImage: text("profileImage"),
     onboardingStep: integer("onboardingStep").default(0),
     onboardingComplete: boolean("onboardingComplete").default(false),
