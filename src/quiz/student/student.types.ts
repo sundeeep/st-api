@@ -16,6 +16,20 @@ export interface BrowseQuizzesFilters {
   limit?: string;
 }
 
+export interface FeaturedQuizItem {
+  id: string;
+  quizName: string;
+  quizType: string;
+  categoryName?: string;
+  bannerImage?: string;
+  timerDuration?: number;
+}
+
+export interface FeaturedQuizzesResponse {
+  featuredQuizzes: FeaturedQuizItem[];
+  quizzes: QuizListItem[];
+}
+
 export interface QuizListItem {
   id: string;
   quizName: string;
@@ -30,6 +44,7 @@ export interface QuizListItem {
   likeCount: number;
   isLiked: boolean;
   isBookmarked: boolean;
+  isFeatured: boolean;
 }
 
 export interface CategoryListItem {

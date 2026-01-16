@@ -121,6 +121,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
         maxAttempts: t.Optional(t.Number()),
         shuffleQuestions: t.Optional(t.Boolean()),
         shuffleOptions: t.Optional(t.Boolean()),
+        isFeatured: t.Optional(t.Boolean()),
       }),
       detail: {
         tags: ["Admin - Quizzes"],
@@ -224,6 +225,7 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
             t.Literal("archived"),
           ])
         ),
+        isFeatured: t.Optional(t.Boolean()),
       }),
       detail: {
         tags: ["Admin - Quizzes"],
@@ -428,6 +430,23 @@ const adminQuizRoutes = new Elysia({ prefix: "/admin/quiz" })
       detail: {
         tags: ["Admin - Analytics"],
         summary: "Get dashboard statistics",
+      },
+    }
+  )
+
+  .put(
+    "/:id/featured",
+    async (context) => {
+      await requireAdmin(context);
+      return quizController.toggleFeaturedHandler(context);
+    },
+    {
+      params: t.Object({
+        id: t.String({ format: "uuid" }),
+      }),
+      detail: {
+        tags: ["Admin - Quizzes"],
+        summary: "Toggle quiz featured status",
       },
     }
   );

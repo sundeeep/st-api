@@ -38,7 +38,7 @@ export async function browseQuizzes(
   const limit = Math.min(parseInt(filters.limit || "10"), QUIZ_CONFIG.DEFAULTS.PAGE_SIZE);
   const offset = (page - 1) * limit;
 
-  const conditions = [eq(quizzes.status, "active")];
+  const conditions = [or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled"))];
 
   if (filters.categoryId) {
     conditions.push(eq(quizzes.categoryId, filters.categoryId));
@@ -53,7 +53,7 @@ export async function browseQuizzes(
   }
 
   const now = new Date();
-  conditions.push(lte(quizzes.startDate, now), gte(quizzes.endDate, now));
+  conditions.push(gte(quizzes.endDate, now));
 
   const [quizList, totalCount] = await Promise.all([
     db
@@ -69,6 +69,7 @@ export async function browseQuizzes(
         endDateTime: quizzes.endDate,
         rewards: quizzes.rewards,
         likeCount: quizzes.likeCount,
+        isFeatured: quizzes.isFeatured,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -106,8 +107,124 @@ export async function browseQuizzes(
       likeCount: q.likeCount || 0,
       isLiked: likedSet.has(q.id),
       isBookmarked: bookmarkedSet.has(q.id),
+      isFeatured: q.isFeatured || false,
     })),
     total: totalCount[0]?.count || 0,
+  };
+}
+
+export async function getFeaturedQuizzes(
+  filters: BrowseQuizzesFilters,
+  userId: string
+): Promise<{
+  featuredQuizzes: Array<{
+    id: string;
+    quizName: string;
+    quizType: string;
+    categoryName?: string;
+    bannerImage?: string;
+    timerDuration?: number;
+  }>;
+  quizzes: QuizListItem[];
+}> {
+  const page = parseInt(filters.page || "1");
+  const normalLimit = 10;
+  const featuredLimit = 4;
+  const offset = (page - 1) * normalLimit;
+
+  const baseConditions = [or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled"))];
+  const now = new Date();
+  baseConditions.push(gte(quizzes.endDate, now));
+
+  if (filters.categoryId) {
+    baseConditions.push(eq(quizzes.categoryId, filters.categoryId));
+  }
+
+  if (filters.quizType) {
+    baseConditions.push(eq(quizzes.quizType, filters.quizType));
+  }
+
+  if (filters.search) {
+    baseConditions.push(sql`${quizzes.quizName} ILIKE ${"%" + filters.search + "%"}`);
+  }
+
+  const featuredConditions = [...baseConditions, eq(quizzes.isFeatured, true)];
+  const normalConditions = [...baseConditions];
+
+  const [featuredList, normalList] = await Promise.all([
+    db
+      .select({
+        id: quizzes.id,
+        quizName: quizzes.quizName,
+        quizType: quizzes.quizType,
+        categoryName: quizCategories.name,
+        bannerImage: quizzes.bannerImage,
+        timerDuration: quizzes.timerDuration,
+      })
+      .from(quizzes)
+      .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
+      .where(and(...featuredConditions))
+      .orderBy(desc(quizzes.createdAt))
+      .limit(featuredLimit),
+    db
+      .select({
+        id: quizzes.id,
+        quizName: quizzes.quizName,
+        quizType: quizzes.quizType,
+        categoryName: quizCategories.name,
+        bannerImage: quizzes.bannerImage,
+        timerDuration: quizzes.timerDuration,
+        totalQuestions: quizzes.questionsCount,
+        startDateTime: quizzes.startDate,
+        endDateTime: quizzes.endDate,
+        rewards: quizzes.rewards,
+        likeCount: quizzes.likeCount,
+        isFeatured: quizzes.isFeatured,
+      })
+      .from(quizzes)
+      .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
+      .where(and(...normalConditions))
+      .orderBy(desc(quizzes.createdAt))
+      .limit(normalLimit)
+      .offset(offset),
+  ]);
+
+  const normalQuizIds = normalList.map((q) => q.id);
+  const interactions = await checkUserInteractions(userId, "quiz", normalQuizIds);
+  const likedSet = new Set(interactions.liked);
+  const bookmarkedSet = new Set(interactions.bookmarked);
+
+  const mapNormalQuiz = (q: (typeof normalList)[0]) => ({
+    id: q.id,
+    quizName: q.quizName,
+    quizType: q.quizType,
+    categoryName: q.categoryName || undefined,
+    bannerImage: q.bannerImage || undefined,
+    timerDuration: q.timerDuration || undefined,
+    totalQuestions: q.totalQuestions || 0,
+    startDateTime: q.startDateTime?.toISOString(),
+    endDateTime: q.endDateTime?.toISOString(),
+    rewards: q.rewards
+      ? typeof q.rewards === "string"
+        ? JSON.parse(q.rewards)
+        : q.rewards
+      : undefined,
+    likeCount: q.likeCount || 0,
+    isLiked: likedSet.has(q.id),
+    isBookmarked: bookmarkedSet.has(q.id),
+    isFeatured: q.isFeatured || false,
+  });
+
+  return {
+    featuredQuizzes: featuredList.map((q) => ({
+      id: q.id,
+      quizName: q.quizName,
+      quizType: q.quizType,
+      categoryName: q.categoryName || undefined,
+      bannerImage: q.bannerImage || undefined,
+      timerDuration: q.timerDuration || undefined,
+    })),
+    quizzes: normalList.map(mapNormalQuiz),
   };
 }
 

@@ -105,6 +105,7 @@ export async function createQuiz(userId: string, data: CreateQuizBody) {
       shuffleOptions: data.shuffleOptions ?? false,
       status: "draft",
       isActive: true,
+      isFeatured: data.isFeatured ?? false,
     })
     .returning();
 
@@ -236,7 +237,7 @@ export async function publishQuiz(id: string) {
   }
 
   const now = new Date();
-  let status: string;
+  let status: "draft" | "scheduled" | "active" | "completed" | "archived";
 
   if (new Date(quiz.startDate) > now) {
     status = "scheduled";
@@ -512,4 +513,19 @@ export async function getDashboardStats(userId: string) {
     totalCategories: Number(categoryStats.totalCategories) || 0,
     recentQuizzes,
   };
+}
+
+export async function toggleFeatured(id: string) {
+  const quiz = await getQuizById(id);
+
+  const [updated] = await db
+    .update(quizzes)
+    .set({
+      isFeatured: !quiz.isFeatured,
+      updatedAt: new Date(),
+    })
+    .where(eq(quizzes.id, id))
+    .returning();
+
+  return updated;
 }

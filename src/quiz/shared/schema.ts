@@ -82,6 +82,7 @@ export const quizzes = pgTable(
 
     status: quizStatusEnum("status").default("draft"),
     isActive: boolean("isActive").default(true),
+    isFeatured: boolean("isFeatured").default(false),
     publishedAt: timestamp("publishedAt"),
 
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -97,6 +98,7 @@ export const quizzes = pgTable(
         table.startDate,
         table.endDate
       ),
+      featuredIdx: index("idx_quizzes_featured").on(table.isFeatured, table.status),
     },
   ]
 );

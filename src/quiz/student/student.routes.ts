@@ -35,6 +35,37 @@ const studentQuizRoutes = new Elysia({ prefix: "/student/quiz" })
   )
 
   .get(
+    "/featured-quizzes",
+    async (context) => {
+      const authContext = await authenticate(context);
+      return studentController.getFeaturedQuizzesHandler(authContext as AuthenticatedContext);
+    },
+    {
+      query: t.Object({
+        categoryId: t.Optional(t.String({ format: "uuid" })),
+        quizType: t.Optional(
+          t.Union([
+            t.Literal("timed"),
+            t.Literal("practice"),
+            t.Literal("competitive"),
+            t.Literal("assessment"),
+          ])
+        ),
+        search: t.Optional(t.String()),
+        page: t.Optional(t.String({ pattern: "^[0-9]+$" })),
+        limit: t.Optional(t.String({ pattern: "^[0-9]+$" })),
+      }),
+      detail: {
+        tags: ["Student - Quizzes"],
+        summary: "Get featured and normal quizzes",
+        description:
+          "Get featured quizzes for carousel and normal quizzes with filters and pagination",
+        security: [{ BearerAuth: [] }],
+      },
+    }
+  )
+
+  .get(
     "/categories",
     async () => {
       return studentController.getCategoriesHandler();

@@ -129,3 +129,30 @@ export const getLeaderboardHandler = async (
   const leaderboard = await studentService.getLeaderboard(params.id, context.userId, filters);
   return successResponse(leaderboard, "Leaderboard fetched successfully");
 };
+
+export const getFeaturedQuizzesHandler = async (
+  context: AuthenticatedContext
+): Promise<SuccessResponse> => {
+  const filters: BrowseQuizzesFilters = {
+    categoryId: context.query?.categoryId as string | undefined,
+    quizType: context.query?.quizType as
+      | "timed"
+      | "practice"
+      | "competitive"
+      | "assessment"
+      | undefined,
+    search: context.query?.search as string | undefined,
+    page: context.query?.page as string | undefined,
+    limit: context.query?.limit as string | undefined,
+  };
+
+  const result = await studentService.getFeaturedQuizzes(filters, context.userId);
+
+  return successResponse(
+    {
+      featuredQuizzes: result.featuredQuizzes,
+      quizzes: result.quizzes,
+    },
+    "Featured quizzes fetched successfully"
+  );
+};

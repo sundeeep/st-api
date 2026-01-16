@@ -44,6 +44,7 @@ export interface CreateQuizBody {
   maxAttempts?: number;
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface UpdateQuizBody {
@@ -64,6 +65,7 @@ export interface UpdateQuizBody {
   shuffleQuestions?: boolean;
   shuffleOptions?: boolean;
   status?: "draft" | "scheduled" | "active" | "completed" | "archived";
+  isFeatured?: boolean;
 }
 
 export interface QuestionOption {

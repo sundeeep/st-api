@@ -138,3 +138,9 @@ export const getDashboardStatsHandler = async (
   const stats = await quizService.getDashboardStats(context.userId);
   return successResponse(stats, "Dashboard stats fetched successfully");
 };
+
+export const toggleFeaturedHandler = async (context: Context): Promise<SuccessResponse> => {
+  const { id } = context.params as { id: string };
+  const quiz = await quizService.toggleFeatured(id);
+  return successResponse(quiz, "Quiz featured status updated successfully");
+};
