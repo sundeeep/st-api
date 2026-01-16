@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, gte, lte, count, avg, max, inArray, gt, lt, or } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, count, max, inArray, gt, lt, or } from "drizzle-orm";
 import { db } from "../../db";
 import {
   quizCategories,
@@ -347,6 +347,7 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
       id: quizzes.id,
       quizName: quizzes.quizName,
       status: quizzes.status,
+      maxAttempts: quizzes.maxAttempts,
       totalQuestions: quizzes.questionsCount,
       timerDuration: quizzes.timerDuration,
       shuffleQuestions: quizzes.shuffleQuestions,
@@ -360,6 +361,110 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
 
   if (!quiz.length || quiz[0].status !== "active") {
     throw NotFoundError("Quiz not found or not available");
+  }
+
+  const existingInProgressAttempt = await db
+    .select({
+      id: userQuizAttempts.id,
+      startedAt: userQuizAttempts.startedAt,
+    })
+    .from(userQuizAttempts)
+    .where(
+      and(
+        eq(userQuizAttempts.quizId, quizId),
+        eq(userQuizAttempts.userId, userId),
+        eq(userQuizAttempts.status, "in_progress")
+      )
+    )
+    .limit(1);
+
+  if (existingInProgressAttempt.length > 0) {
+    const attemptId = existingInProgressAttempt[0].id;
+    const currentIndex = await quizRedis.getCurrentQuestionIndex(quizId, userId);
+    const shuffledOrder = await quizRedis.getUserQuestionOrder(quizId, userId);
+
+    if (shuffledOrder && currentIndex !== null && currentIndex < shuffledOrder.length) {
+      let cachedQuestions = await quizRedis.getCachedQuestions(quizId);
+
+      if (!cachedQuestions) {
+        const questions = await db
+          .select({
+            id: quizQuestions.id,
+            questionText: quizQuestions.questionText,
+            points: quizQuestions.points,
+          })
+          .from(quizQuestions)
+          .where(eq(quizQuestions.quizId, quizId));
+
+        if (!questions.length) {
+          throw BadRequestError("Quiz has no questions");
+        }
+
+        const questionIds = questions.map((q) => q.id);
+        const options = await db
+          .select({
+            id: quizQuestionOptions.id,
+            questionId: quizQuestionOptions.questionId,
+            optionText: quizQuestionOptions.optionText,
+            displayOrder: quizQuestionOptions.displayOrder,
+          })
+          .from(quizQuestionOptions)
+          .where(inArray(quizQuestionOptions.questionId, questionIds))
+          .orderBy(quizQuestionOptions.displayOrder);
+
+        cachedQuestions = questions.map((q) => ({
+          id: q.id,
+          questionText: q.questionText,
+          questionType: "single",
+          marks: Number(q.points),
+          options: options
+            .filter((o) => o.questionId === q.id)
+            .map((o) => ({
+              id: o.id,
+              optionText: o.optionText,
+              displayOrder: o.displayOrder,
+            })),
+        }));
+
+        await quizRedis.cacheQuizQuestions(quizId, cachedQuestions);
+      }
+
+      const currentQuestionId = shuffledOrder[currentIndex];
+      const currentQuestion = cachedQuestions.find((q: any) => q.id === currentQuestionId);
+
+      if (!currentQuestion) {
+        throw BadRequestError("Failed to get current question");
+      }
+
+      const totalMarks = cachedQuestions.reduce((sum: number, q: any) => sum + q.marks, 0);
+
+      return {
+        attemptId,
+        quizId: quiz[0].id,
+        startedAt: existingInProgressAttempt[0].startedAt.toISOString(),
+        question: currentQuestion,
+        currentQuestion: currentIndex + 1,
+        totalQuestions: cachedQuestions.length,
+        totalMarks,
+        timerDuration: quiz[0].timerDuration || undefined,
+      };
+    }
+  }
+
+  const completedAttemptsCount = await db
+    .select({ count: count() })
+    .from(userQuizAttempts)
+    .where(
+      and(
+        eq(userQuizAttempts.quizId, quizId),
+        eq(userQuizAttempts.userId, userId),
+        eq(userQuizAttempts.status, "completed")
+      )
+    );
+
+  const maxAttempts = quiz[0].maxAttempts || 1;
+  if (completedAttemptsCount[0]?.count && Number(completedAttemptsCount[0].count) >= maxAttempts) {
+    throw BadRequestError(`Maximum attempts (${maxAttempts}) reached for this quiz`);
   }
 
   let cachedQuestions = await quizRedis.getCachedQuestions(quizId);
@@ -956,7 +1061,9 @@ export async function getLeaderboard(
   userId: string,
   filters: LeaderboardFilters
 ): Promise<LeaderboardResponse> {
+  const page = Math.max(parseInt(filters.page || "1"), 1);
   const limit = Math.min(parseInt(filters.limit || "10"), 50);
+  const offset = (page - 1) * limit;
 
   const quiz = await db
     .select({ quizName: quizzes.quizName })
@@ -967,6 +1074,14 @@ export async function getLeaderboard(
   if (!quiz.length) {
     throw NotFoundError("Quiz not found");
   }
+
+  const [totalCount] = await db
+    .select({ count: count() })
+    .from(quizLeaderboard)
+    .where(eq(quizLeaderboard.quizId, quizId));
+
+  const total = Number(totalCount?.count || 0);
+  const totalPages = Math.ceil(total / limit);
 
   const topRanks = await db
     .select({
@@ -979,7 +1094,8 @@ export async function getLeaderboard(
     .from(quizLeaderboard)
     .where(eq(quizLeaderboard.quizId, quizId))
     .orderBy(desc(quizLeaderboard.bestScore), quizLeaderboard.bestTimeSpent)
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
 
   const myBestAttempt = await db
     .select({
@@ -997,14 +1113,13 @@ export async function getLeaderboard(
   const [stats] = await db
     .select({
       totalParticipants: count(quizLeaderboard.id),
-      averageScore: avg(quizLeaderboard.bestScore),
       topScore: max(quizLeaderboard.bestScore),
     })
     .from(quizLeaderboard)
     .where(eq(quizLeaderboard.quizId, quizId));
 
   const topRanksList: LeaderboardEntry[] = topRanks.map((r, index) => ({
-    rank: index + 1,
+    rank: offset + index + 1,
     userId: r.userId,
     userName: "Student",
     score: Number(r.bestScore),
@@ -1053,8 +1168,13 @@ export async function getLeaderboard(
     myRank,
     stats: {
       totalParticipants: Number(stats.totalParticipants) || 0,
-      averageScore: Number(stats.averageScore) || 0,
       topScore: Number(stats.topScore) || 0,
+    },
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
     },
   };
 }

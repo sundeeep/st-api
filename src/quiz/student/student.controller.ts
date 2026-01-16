@@ -123,6 +123,7 @@ export const getLeaderboardHandler = async (
 ): Promise<SuccessResponse> => {
   const params = context.params as QuizParams;
   const filters: LeaderboardFilters = {
+    page: context.query?.page as string | undefined,
     limit: context.query?.limit as string | undefined,
   };
 

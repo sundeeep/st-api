@@ -193,6 +193,7 @@ export interface AttemptListItem {
 }
 
 export interface LeaderboardFilters {
+  page?: string;
   limit?: string;
 }
 
@@ -203,8 +204,13 @@ export interface LeaderboardResponse {
   myRank: LeaderboardEntry | null;
   stats: {
     totalParticipants: number;
-    averageScore: number;
     topScore: number;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
 }
 

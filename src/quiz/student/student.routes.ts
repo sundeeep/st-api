@@ -215,6 +215,7 @@ const studentQuizRoutes = new Elysia({ prefix: "/student/quiz" })
         id: t.String({ format: "uuid" }),
       }),
       query: t.Object({
+        page: t.Optional(t.String({ pattern: "^[0-9]+$" })),
         limit: t.Optional(t.String({ pattern: "^[0-9]+$" })),
       }),
       detail: {
