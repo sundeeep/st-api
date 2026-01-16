@@ -249,6 +249,7 @@ export async function getCategories(): Promise<CategoryListItem[]> {
       id: quizCategories.id,
       name: quizCategories.name,
       description: quizCategories.description,
+      icon: quizCategories.icon,
     })
     .from(quizCategories)
     .orderBy(quizCategories.name);
@@ -257,6 +258,7 @@ export async function getCategories(): Promise<CategoryListItem[]> {
     id: c.id,
     name: c.name,
     description: c.description || undefined,
+    icon: c.icon || undefined,
   }));
 }
 
@@ -278,6 +280,7 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
       status: quizzes.status,
       averageScore: quizzes.averageScore,
       likeCount: quizzes.likeCount,
+      maxAttempts: quizzes.maxAttempts,
     })
     .from(quizzes)
     .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -288,22 +291,81 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     throw NotFoundError("Quiz not found or not available");
   }
 
-  const userAttempts = await db
-    .select({
-      score: userQuizAttempts.scoreObtained,
-    })
-    .from(userQuizAttempts)
-    .where(
-      and(
-        eq(userQuizAttempts.quizId, quizId),
-        eq(userQuizAttempts.userId, userId),
-        eq(userQuizAttempts.status, "completed")
+  const [inProgressAttempt, completedAttempts, myLeaderboardEntry] = await Promise.all([
+    db
+      .select({
+        id: userQuizAttempts.id,
+      })
+      .from(userQuizAttempts)
+      .where(
+        and(
+          eq(userQuizAttempts.quizId, quizId),
+          eq(userQuizAttempts.userId, userId),
+          eq(userQuizAttempts.status, "in_progress")
+        )
       )
-    )
-    .orderBy(desc(userQuizAttempts.scoreObtained))
-    .limit(1);
+      .limit(1),
+    db
+      .select({
+        id: userQuizAttempts.id,
+        score: userQuizAttempts.scoreObtained,
+      })
+      .from(userQuizAttempts)
+      .where(
+        and(
+          eq(userQuizAttempts.quizId, quizId),
+          eq(userQuizAttempts.userId, userId),
+          eq(userQuizAttempts.status, "completed")
+        )
+      )
+      .orderBy(desc(userQuizAttempts.scoreObtained))
+      .limit(1),
+    db
+      .select({
+        attemptId: quizLeaderboard.attemptId,
+        bestScore: quizLeaderboard.bestScore,
+        bestTimeSpent: quizLeaderboard.bestTimeSpent,
+      })
+      .from(quizLeaderboard)
+      .where(and(eq(quizLeaderboard.quizId, quizId), eq(quizLeaderboard.userId, userId)))
+      .limit(1),
+  ]);
+
+  let myRank: number | undefined;
+  if (myLeaderboardEntry.length) {
+    const [rankData] = await db
+      .select({ count: count() })
+      .from(quizLeaderboard)
+      .where(
+        and(
+          eq(quizLeaderboard.quizId, quizId),
+          or(
+            gt(quizLeaderboard.bestScore, myLeaderboardEntry[0].bestScore),
+            and(
+              eq(quizLeaderboard.bestScore, myLeaderboardEntry[0].bestScore),
+              lt(quizLeaderboard.bestTimeSpent, myLeaderboardEntry[0].bestTimeSpent || 0)
+            )
+          )
+        )
+      );
+    myRank = (rankData?.count || 0) + 1;
+  }
 
   const q = quiz[0];
+  const maxAttempts = q.maxAttempts || 1;
+  const completedCount = completedAttempts.length;
+  const lastAttemptId = completedAttempts[0]?.id;
+
+  let attemptStatus: "not_started" | "in_progress" | "completed" | "max_attempts_reached";
+  if (inProgressAttempt.length > 0) {
+    attemptStatus = "in_progress";
+  } else if (completedCount >= maxAttempts) {
+    attemptStatus = "max_attempts_reached";
+  } else if (completedCount > 0) {
+    attemptStatus = "completed";
+  } else {
+    attemptStatus = "not_started";
+  }
 
   // Calculate total marks from questions
   const questions = await db
@@ -333,8 +395,11 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
         : q.rewards
       : undefined,
     createdAt: q.createdAt.toISOString(),
-    hasAttempted: userAttempts.length > 0,
-    myBestScore: userAttempts[0]?.score ? Number(userAttempts[0].score) : undefined,
+    hasAttempted: completedAttempts.length > 0,
+    myBestScore: completedAttempts[0]?.score ? Number(completedAttempts[0].score) : undefined,
+    lastAttemptId: lastAttemptId,
+    myRank: myRank,
+    attemptStatus,
     likeCount: q.likeCount || 0,
     isLiked: interactions.liked.includes(quizId),
     isBookmarked: interactions.bookmarked.includes(quizId),
@@ -565,111 +630,10 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
   };
 }
 
-export async function submitAnswer(
+async function completeQuizInternal(
   attemptId: string,
   userId: string,
-  data: SubmitAnswerRequest
-): Promise<SubmitAnswerResponse> {
-  const attempt = await db
-    .select({
-      userId: userQuizAttempts.userId,
-      status: userQuizAttempts.status,
-      quizId: userQuizAttempts.quizId,
-      totalQuestions: userQuizAttempts.totalQuestions,
-    })
-    .from(userQuizAttempts)
-    .where(eq(userQuizAttempts.id, attemptId))
-    .limit(1);
-
-  if (!attempt.length) {
-    throw NotFoundError("Attempt not found");
-  }
-
-  if (attempt[0].userId !== userId) {
-    throw ValidationError("Unauthorized access to this attempt");
-  }
-
-  if (attempt[0].status !== "in_progress") {
-    throw BadRequestError("Cannot submit answer to completed attempt");
-  }
-
-  const existing = await db
-    .select({ id: userQuizAnswers.id })
-    .from(userQuizAnswers)
-    .where(
-      and(eq(userQuizAnswers.attemptId, attemptId), eq(userQuizAnswers.questionId, data.questionId))
-    )
-    .limit(1);
-
-  const selectedOptionId = data.selectedOptionIds[0] || null;
-
-  let answerId: string;
-  if (existing.length) {
-    await db
-      .update(userQuizAnswers)
-      .set({
-        selectedOptionId,
-      })
-      .where(eq(userQuizAnswers.id, existing[0].id));
-    answerId = existing[0].id;
-  } else {
-    const [answer] = await db
-      .insert(userQuizAnswers)
-      .values({
-        attemptId,
-        questionId: data.questionId,
-        selectedOptionId,
-      })
-      .returning({ id: userQuizAnswers.id });
-    answerId = answer.id;
-  }
-
-  const newIndex = await quizRedis.incrementQuestionIndex(attempt[0].quizId, userId);
-  const order = await quizRedis.getUserQuestionOrder(attempt[0].quizId, userId);
-
-  if (!order || newIndex >= order.length) {
-    return {
-      answerId,
-      saved: true,
-      isComplete: true,
-      currentQuestion: newIndex,
-      totalQuestions: attempt[0].totalQuestions,
-    };
-  }
-
-  const nextQuestion = await quizRedis.getQuestionByIndex(attempt[0].quizId, userId, newIndex);
-
-  if (!nextQuestion) {
-    return {
-      answerId,
-      saved: true,
-      isComplete: true,
-      currentQuestion: newIndex,
-      totalQuestions: attempt[0].totalQuestions,
-    };
-  }
-
-  return {
-    answerId,
-    saved: true,
-    nextQuestion: {
-      id: nextQuestion.id,
-      questionText: nextQuestion.questionText,
-      questionType: nextQuestion.questionType,
-      marks: nextQuestion.marks,
-      displayOrder: newIndex + 1,
-      options: nextQuestion.options,
-    },
-    currentQuestion: newIndex + 1,
-    totalQuestions: attempt[0].totalQuestions,
-    isComplete: false,
-  };
-}
-
-export async function completeQuiz(
-  attemptId: string,
-  userId: string,
-  data: CompleteQuizRequest
+  submittedAt: Date
 ): Promise<CompleteQuizResponse> {
   const attempt = await db
     .select({
@@ -764,15 +728,19 @@ export async function completeQuiz(
   const percentage = totalMarks > 0 ? (scoreObtained / totalMarks) * 100 : 0;
   const wrongAnswers = answers.length - correctAnswersCount;
   const skippedQuestions = totalQuestions - answers.length;
-  const submittedAt = new Date(data.completedAt);
 
   await quizRedis.cleanupUserQuizState(attempt[0].quizId, userId);
-  const timeSpent = Math.floor((submittedAt.getTime() - attempt[0].startedAt.getTime()) / 1000);
 
-  await db
+  // Use server timestamp for submittedAt (consistent and fair)
+  const actualSubmittedAt = submittedAt || new Date();
+  const timeSpent = Math.floor(
+    (actualSubmittedAt.getTime() - attempt[0].startedAt.getTime()) / 1000
+  );
+
+  const [updatedAttempt] = await db
     .update(userQuizAttempts)
     .set({
-      submittedAt,
+      submittedAt: actualSubmittedAt,
       status: "completed",
       scoreObtained: scoreObtained.toString(),
       scorePercentage: percentage.toString(),
@@ -780,7 +748,11 @@ export async function completeQuiz(
       answeredQuestions: answers.length,
       correctAnswers: correctAnswersCount,
     })
-    .where(eq(userQuizAttempts.id, attemptId));
+    .where(eq(userQuizAttempts.id, attemptId))
+    .returning({ submittedAt: userQuizAttempts.submittedAt });
+
+  // Use the actual DB timestamp if available (more accurate)
+  const finalSubmittedAt = updatedAttempt?.submittedAt || actualSubmittedAt;
 
   await db.insert(quizLeaderboard).values({
     quizId: attempt[0].quizId,
@@ -789,7 +761,7 @@ export async function completeQuiz(
     bestScore: scoreObtained.toString(),
     bestPercentage: percentage.toString(),
     bestTimeSpent: timeSpent,
-    completedAt: submittedAt,
+    completedAt: finalSubmittedAt,
   });
 
   await db
@@ -830,6 +802,183 @@ export async function completeQuiz(
     rank,
     resultId: attemptId,
   };
+}
+
+export async function submitAnswer(
+  attemptId: string,
+  userId: string,
+  data: SubmitAnswerRequest
+): Promise<SubmitAnswerResponse | CompleteQuizResponse> {
+  const attempt = await db
+    .select({
+      userId: userQuizAttempts.userId,
+      status: userQuizAttempts.status,
+      quizId: userQuizAttempts.quizId,
+      totalQuestions: userQuizAttempts.totalQuestions,
+    })
+    .from(userQuizAttempts)
+    .where(eq(userQuizAttempts.id, attemptId))
+    .limit(1);
+
+  if (!attempt.length) {
+    throw NotFoundError("Attempt not found");
+  }
+
+  if (attempt[0].userId !== userId) {
+    throw ValidationError("Unauthorized access to this attempt");
+  }
+
+  if (attempt[0].status !== "in_progress") {
+    throw BadRequestError("Cannot submit answer to completed attempt");
+  }
+
+  const existing = await db
+    .select({ id: userQuizAnswers.id })
+    .from(userQuizAnswers)
+    .where(
+      and(eq(userQuizAnswers.attemptId, attemptId), eq(userQuizAnswers.questionId, data.questionId))
+    )
+    .limit(1);
+
+  const selectedOptionId = data.selectedOptionIds[0] || null;
+
+  let answerId: string;
+  if (existing.length) {
+    await db
+      .update(userQuizAnswers)
+      .set({
+        selectedOptionId,
+      })
+      .where(eq(userQuizAnswers.id, existing[0].id));
+    answerId = existing[0].id;
+  } else {
+    const [answer] = await db
+      .insert(userQuizAnswers)
+      .values({
+        attemptId,
+        questionId: data.questionId,
+        selectedOptionId,
+      })
+      .returning({ id: userQuizAnswers.id });
+    answerId = answer.id;
+  }
+
+  const newIndex = await quizRedis.incrementQuestionIndex(attempt[0].quizId, userId);
+  const order = await quizRedis.getUserQuestionOrder(attempt[0].quizId, userId);
+
+  if (!order || newIndex >= order.length) {
+    const submittedAt = new Date();
+    return await completeQuizInternal(attemptId, userId, submittedAt);
+  }
+
+  const nextQuestion = await quizRedis.getQuestionByIndex(attempt[0].quizId, userId, newIndex);
+
+  if (!nextQuestion) {
+    const submittedAt = new Date();
+    return await completeQuizInternal(attemptId, userId, submittedAt);
+  }
+
+  return {
+    answerId,
+    saved: true,
+    nextQuestion: {
+      id: nextQuestion.id,
+      questionText: nextQuestion.questionText,
+      questionType: nextQuestion.questionType,
+      marks: nextQuestion.marks,
+      displayOrder: newIndex + 1,
+      options: nextQuestion.options,
+    },
+    currentQuestion: newIndex + 1,
+    totalQuestions: attempt[0].totalQuestions,
+    isComplete: false,
+  };
+}
+
+export async function completeQuiz(
+  attemptId: string,
+  userId: string,
+  data: CompleteQuizRequest
+): Promise<CompleteQuizResponse> {
+  const attempt = await db
+    .select({
+      quizId: userQuizAttempts.quizId,
+      userId: userQuizAttempts.userId,
+      status: userQuizAttempts.status,
+      startedAt: userQuizAttempts.startedAt,
+      scoreObtained: userQuizAttempts.scoreObtained,
+      scorePercentage: userQuizAttempts.scorePercentage,
+      correctAnswers: userQuizAttempts.correctAnswers,
+      answeredQuestions: userQuizAttempts.answeredQuestions,
+      totalQuestions: userQuizAttempts.totalQuestions,
+      timeSpent: userQuizAttempts.timeSpent,
+      submittedAt: userQuizAttempts.submittedAt,
+    })
+    .from(userQuizAttempts)
+    .where(eq(userQuizAttempts.id, attemptId))
+    .limit(1);
+
+  if (!attempt.length) {
+    throw NotFoundError("Attempt not found");
+  }
+
+  if (attempt[0].userId !== userId) {
+    throw ValidationError("Unauthorized access to this attempt");
+  }
+
+  if (attempt[0].status === "completed") {
+    const a = attempt[0];
+    const wrongAnswers = (a.answeredQuestions || 0) - (a.correctAnswers || 0);
+    const skippedQuestions = (a.totalQuestions || 0) - (a.answeredQuestions || 0);
+
+    const questions = await db
+      .select({
+        points: quizQuestions.points,
+      })
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, a.quizId));
+
+    const totalMarks = questions.reduce((sum, q) => sum + Number(q.points || 0), 0);
+
+    const [rankData] = await db
+      .select({ count: count() })
+      .from(quizLeaderboard)
+      .where(
+        and(
+          eq(quizLeaderboard.quizId, a.quizId),
+          or(
+            gt(quizLeaderboard.bestScore, a.scoreObtained || "0"),
+            and(
+              eq(quizLeaderboard.bestScore, a.scoreObtained || "0"),
+              lt(quizLeaderboard.bestTimeSpent, a.timeSpent || 0)
+            )
+          )
+        )
+      );
+
+    const rank = (rankData?.count || 0) + 1;
+
+    return {
+      attemptId,
+      quizId: a.quizId,
+      score: Number(a.scoreObtained) || 0,
+      totalMarks,
+      percentage: Number(a.scorePercentage) || 0,
+      correctAnswers: a.correctAnswers || 0,
+      wrongAnswers,
+      skippedQuestions,
+      timeTaken: a.timeSpent || 0,
+      rank,
+      resultId: attemptId,
+    };
+  }
+
+  if (attempt[0].status !== "in_progress") {
+    throw BadRequestError("Attempt already completed");
+  }
+
+  const submittedAt = new Date(data.completedAt);
+  return await completeQuizInternal(attemptId, userId, submittedAt);
 }
 
 export async function getAttemptResult(attemptId: string, userId: string): Promise<AttemptResult> {
@@ -1086,6 +1235,7 @@ export async function getLeaderboard(
   const topRanks = await db
     .select({
       userId: quizLeaderboard.userId,
+      attemptId: quizLeaderboard.attemptId,
       bestScore: quizLeaderboard.bestScore,
       bestPercentage: quizLeaderboard.bestPercentage,
       bestTimeSpent: quizLeaderboard.bestTimeSpent,
@@ -1100,6 +1250,7 @@ export async function getLeaderboard(
   const myBestAttempt = await db
     .select({
       userId: quizLeaderboard.userId,
+      attemptId: quizLeaderboard.attemptId,
       bestScore: quizLeaderboard.bestScore,
       bestPercentage: quizLeaderboard.bestPercentage,
       bestTimeSpent: quizLeaderboard.bestTimeSpent,
@@ -1122,6 +1273,7 @@ export async function getLeaderboard(
     rank: offset + index + 1,
     userId: r.userId,
     userName: "Student",
+    attemptId: r.attemptId || undefined,
     score: Number(r.bestScore),
     percentage: Number(r.bestPercentage),
     timeTaken: r.bestTimeSpent || 0,
@@ -1153,6 +1305,7 @@ export async function getLeaderboard(
       rank,
       userId: r.userId,
       userName: "You",
+      attemptId: r.attemptId || undefined,
       score: Number(r.bestScore),
       percentage: Number(r.bestPercentage),
       timeTaken: r.bestTimeSpent || 0,

@@ -76,7 +76,11 @@ export const submitAnswerHandler = async (
   const body = context.body as SubmitAnswerRequest;
 
   const result = await studentService.submitAnswer(params.attemptId, context.userId, body);
-  return successResponse(result, "Answer submitted successfully");
+
+  const message =
+    "resultId" in result ? "Quiz completed successfully" : "Answer submitted successfully";
+
+  return successResponse(result, message);
 };
 
 export const completeQuizHandler = async (

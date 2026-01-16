@@ -52,6 +52,7 @@ export interface CategoryListItem {
   id: string;
   name: string;
   description?: string;
+  icon?: string;
 }
 
 export interface QuizDetails {
@@ -73,6 +74,9 @@ export interface QuizDetails {
   createdAt: string;
   hasAttempted: boolean;
   myBestScore?: number;
+  lastAttemptId?: string;
+  myRank?: number;
+  attemptStatus: "not_started" | "in_progress" | "completed" | "max_attempts_reached";
   likeCount: number;
   isLiked: boolean;
   isBookmarked: boolean;
@@ -218,6 +222,7 @@ export interface LeaderboardEntry {
   rank: number;
   userId: string;
   userName: string;
+  attemptId?: string;
   score: number;
   percentage: number;
   timeTaken: number;
