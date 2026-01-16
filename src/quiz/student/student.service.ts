@@ -12,6 +12,7 @@ import {
 import { ValidationError, NotFoundError, BadRequestError } from "../../utils/errors.util";
 import { QUIZ_CONFIG } from "../shared/config";
 import { checkUserInteractions } from "../../interactions/shared/interactions.service";
+import * as quizRedis from "../shared/redis.service";
 import type {
   BrowseQuizzesFilters,
   QuizListItem,
@@ -20,6 +21,7 @@ import type {
   StartQuizResponse,
   QuizQuestion,
   SubmitAnswerRequest,
+  SubmitAnswerResponse,
   CompleteQuizRequest,
   CompleteQuizResponse,
   AttemptResult,
@@ -38,7 +40,10 @@ export async function browseQuizzes(
   const limit = Math.min(parseInt(filters.limit || "10"), QUIZ_CONFIG.DEFAULTS.PAGE_SIZE);
   const offset = (page - 1) * limit;
 
-  const conditions = [or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled"))];
+  const conditions = [
+    or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled")),
+    eq(quizzes.isActive, true),
+  ];
 
   if (filters.categoryId) {
     conditions.push(eq(quizzes.categoryId, filters.categoryId));
@@ -70,6 +75,7 @@ export async function browseQuizzes(
         rewards: quizzes.rewards,
         likeCount: quizzes.likeCount,
         isFeatured: quizzes.isFeatured,
+        status: quizzes.status,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -108,6 +114,7 @@ export async function browseQuizzes(
       isLiked: likedSet.has(q.id),
       isBookmarked: bookmarkedSet.has(q.id),
       isFeatured: q.isFeatured || false,
+      status: (q.status || "scheduled") as "scheduled" | "active",
     })),
     total: totalCount[0]?.count || 0,
   };
@@ -124,6 +131,7 @@ export async function getFeaturedQuizzes(
     categoryName?: string;
     bannerImage?: string;
     timerDuration?: number;
+    status: "draft" | "scheduled" | "active" | "completed" | "archived";
   }>;
   quizzes: QuizListItem[];
 }> {
@@ -132,7 +140,10 @@ export async function getFeaturedQuizzes(
   const featuredLimit = 4;
   const offset = (page - 1) * normalLimit;
 
-  const baseConditions = [or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled"))];
+  const baseConditions = [
+    or(eq(quizzes.status, "active"), eq(quizzes.status, "scheduled")),
+    eq(quizzes.isActive, true),
+  ];
   const now = new Date();
   baseConditions.push(gte(quizzes.endDate, now));
 
@@ -160,6 +171,7 @@ export async function getFeaturedQuizzes(
         categoryName: quizCategories.name,
         bannerImage: quizzes.bannerImage,
         timerDuration: quizzes.timerDuration,
+        status: quizzes.status,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -180,6 +192,7 @@ export async function getFeaturedQuizzes(
         rewards: quizzes.rewards,
         likeCount: quizzes.likeCount,
         isFeatured: quizzes.isFeatured,
+        status: quizzes.status,
       })
       .from(quizzes)
       .leftJoin(quizCategories, eq(quizzes.categoryId, quizCategories.id))
@@ -213,6 +226,7 @@ export async function getFeaturedQuizzes(
     isLiked: likedSet.has(q.id),
     isBookmarked: bookmarkedSet.has(q.id),
     isFeatured: q.isFeatured || false,
+    status: (q.status || "scheduled") as "scheduled" | "active",
   });
 
   return {
@@ -223,6 +237,7 @@ export async function getFeaturedQuizzes(
       categoryName: q.categoryName || undefined,
       bannerImage: q.bannerImage || undefined,
       timerDuration: q.timerDuration || undefined,
+      status: (q.status || "scheduled") as "scheduled" | "active",
     })),
     quizzes: normalList.map(mapNormalQuiz),
   };
@@ -337,6 +352,7 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
       shuffleQuestions: quizzes.shuffleQuestions,
       shuffleOptions: quizzes.shuffleOptions,
       averageScore: quizzes.averageScore,
+      endDate: quizzes.endDate,
     })
     .from(quizzes)
     .where(eq(quizzes.id, quizId))
@@ -346,30 +362,60 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
     throw NotFoundError("Quiz not found or not available");
   }
 
-  const questions = await db
-    .select({
-      id: quizQuestions.id,
-      questionText: quizQuestions.questionText,
-      points: quizQuestions.points,
-    })
-    .from(quizQuestions)
-    .where(eq(quizQuestions.quizId, quizId));
+  let cachedQuestions = await quizRedis.getCachedQuestions(quizId);
 
-  if (!questions.length) {
-    throw BadRequestError("Quiz has no questions");
+  if (!cachedQuestions) {
+    const questions = await db
+      .select({
+        id: quizQuestions.id,
+        questionText: quizQuestions.questionText,
+        points: quizQuestions.points,
+      })
+      .from(quizQuestions)
+      .where(eq(quizQuestions.quizId, quizId));
+
+    if (!questions.length) {
+      throw BadRequestError("Quiz has no questions");
+    }
+
+    const questionIds = questions.map((q) => q.id);
+    const options = await db
+      .select({
+        id: quizQuestionOptions.id,
+        questionId: quizQuestionOptions.questionId,
+        optionText: quizQuestionOptions.optionText,
+        displayOrder: quizQuestionOptions.displayOrder,
+      })
+      .from(quizQuestionOptions)
+      .where(inArray(quizQuestionOptions.questionId, questionIds))
+      .orderBy(quizQuestionOptions.displayOrder);
+
+    cachedQuestions = questions.map((q) => ({
+      id: q.id,
+      questionText: q.questionText,
+      questionType: "single",
+      marks: Number(q.points),
+      options: options
+        .filter((o) => o.questionId === q.id)
+        .map((o) => ({
+          id: o.id,
+          optionText: o.optionText,
+          displayOrder: o.displayOrder,
+        })),
+    }));
+
+    await quizRedis.cacheQuizQuestions(quizId, cachedQuestions);
   }
 
-  const questionIds = questions.map((q) => q.id);
-  const options = await db
-    .select({
-      id: quizQuestionOptions.id,
-      questionId: quizQuestionOptions.questionId,
-      optionText: quizQuestionOptions.optionText,
-      displayOrder: quizQuestionOptions.displayOrder,
-    })
-    .from(quizQuestionOptions)
-    .where(inArray(quizQuestionOptions.questionId, questionIds))
-    .orderBy(quizQuestionOptions.displayOrder);
+  const questionIds = cachedQuestions.map((q: any) => q.id);
+  const userTtl = quizRedis.calculateUserStateTTL(quiz[0].endDate);
+  const shuffledOrder = await quizRedis.createUserShuffledOrder(
+    quizId,
+    userId,
+    questionIds,
+    quiz[0].shuffleQuestions ?? false,
+    userTtl
+  );
 
   const startedAt = new Date();
   const [attempt] = await db
@@ -379,44 +425,36 @@ export async function startQuizAttempt(quizId: string, userId: string): Promise<
       userId,
       startedAt,
       status: "in_progress",
-      totalQuestions: questions.length,
+      totalQuestions: cachedQuestions.length,
     })
     .returning({ id: userQuizAttempts.id });
 
-  let questionsWithOptions: QuizQuestion[] = questions.map((q, index) => ({
-    id: q.id,
-    questionText: q.questionText,
-    questionType: "single",
-    marks: Number(q.points),
-    displayOrder: index + 1,
-    options: options
-      .filter((o) => o.questionId === q.id)
-      .map((o) => ({
-        id: o.id,
-        optionText: o.optionText,
-        displayOrder: o.displayOrder,
-      })),
-  }));
+  await quizRedis.setCurrentQuestionIndex(quizId, userId, 0, userTtl);
+  await quizRedis.storeUserAttemptId(quizId, userId, attempt.id, userTtl);
 
-  if (quiz[0].shuffleQuestions) {
-    questionsWithOptions = questionsWithOptions.sort(() => Math.random() - 0.5);
+  const firstQuestionId = shuffledOrder[0];
+  const firstQuestion = cachedQuestions.find((q: any) => q.id === firstQuestionId);
+
+  if (!firstQuestion) {
+    throw BadRequestError("Failed to get first question");
   }
 
-  if (quiz[0].shuffleOptions) {
-    questionsWithOptions = questionsWithOptions.map((q) => ({
-      ...q,
-      options: [...q.options].sort(() => Math.random() - 0.5),
-    }));
-  }
-
-  const totalMarks = questions.reduce((sum, q) => sum + Number(q.points), 0);
+  const totalMarks = cachedQuestions.reduce((sum: number, q: any) => sum + q.marks, 0);
 
   return {
     attemptId: attempt.id,
     quizId: quiz[0].id,
     startedAt: startedAt.toISOString(),
-    questions: questionsWithOptions,
-    totalQuestions: questions.length,
+    question: {
+      id: firstQuestion.id,
+      questionText: firstQuestion.questionText,
+      questionType: firstQuestion.questionType,
+      marks: firstQuestion.marks,
+      displayOrder: 1,
+      options: firstQuestion.options,
+    },
+    currentQuestion: 1,
+    totalQuestions: cachedQuestions.length,
     totalMarks,
     timerDuration: quiz[0].timerDuration || undefined,
   };
@@ -426,9 +464,14 @@ export async function submitAnswer(
   attemptId: string,
   userId: string,
   data: SubmitAnswerRequest
-): Promise<{ answerId: string; saved: boolean }> {
+): Promise<SubmitAnswerResponse> {
   const attempt = await db
-    .select({ userId: userQuizAttempts.userId, status: userQuizAttempts.status })
+    .select({
+      userId: userQuizAttempts.userId,
+      status: userQuizAttempts.status,
+      quizId: userQuizAttempts.quizId,
+      totalQuestions: userQuizAttempts.totalQuestions,
+    })
     .from(userQuizAttempts)
     .where(eq(userQuizAttempts.id, attemptId))
     .limit(1);
@@ -455,6 +498,7 @@ export async function submitAnswer(
 
   const selectedOptionId = data.selectedOptionIds[0] || null;
 
+  let answerId: string;
   if (existing.length) {
     await db
       .update(userQuizAnswers)
@@ -462,20 +506,59 @@ export async function submitAnswer(
         selectedOptionId,
       })
       .where(eq(userQuizAnswers.id, existing[0].id));
-
-    return { answerId: existing[0].id, saved: true };
+    answerId = existing[0].id;
+  } else {
+    const [answer] = await db
+      .insert(userQuizAnswers)
+      .values({
+        attemptId,
+        questionId: data.questionId,
+        selectedOptionId,
+      })
+      .returning({ id: userQuizAnswers.id });
+    answerId = answer.id;
   }
 
-  const [answer] = await db
-    .insert(userQuizAnswers)
-    .values({
-      attemptId,
-      questionId: data.questionId,
-      selectedOptionId,
-    })
-    .returning({ id: userQuizAnswers.id });
+  const newIndex = await quizRedis.incrementQuestionIndex(attempt[0].quizId, userId);
+  const order = await quizRedis.getUserQuestionOrder(attempt[0].quizId, userId);
 
-  return { answerId: answer.id, saved: true };
+  if (!order || newIndex >= order.length) {
+    return {
+      answerId,
+      saved: true,
+      isComplete: true,
+      currentQuestion: newIndex,
+      totalQuestions: attempt[0].totalQuestions,
+    };
+  }
+
+  const nextQuestion = await quizRedis.getQuestionByIndex(attempt[0].quizId, userId, newIndex);
+
+  if (!nextQuestion) {
+    return {
+      answerId,
+      saved: true,
+      isComplete: true,
+      currentQuestion: newIndex,
+      totalQuestions: attempt[0].totalQuestions,
+    };
+  }
+
+  return {
+    answerId,
+    saved: true,
+    nextQuestion: {
+      id: nextQuestion.id,
+      questionText: nextQuestion.questionText,
+      questionType: nextQuestion.questionType,
+      marks: nextQuestion.marks,
+      displayOrder: newIndex + 1,
+      options: nextQuestion.options,
+    },
+    currentQuestion: newIndex + 1,
+    totalQuestions: attempt[0].totalQuestions,
+    isComplete: false,
+  };
 }
 
 export async function completeQuiz(
@@ -577,6 +660,8 @@ export async function completeQuiz(
   const wrongAnswers = answers.length - correctAnswersCount;
   const skippedQuestions = totalQuestions - answers.length;
   const submittedAt = new Date(data.completedAt);
+
+  await quizRedis.cleanupUserQuizState(attempt[0].quizId, userId);
   const timeSpent = Math.floor((submittedAt.getTime() - attempt[0].startedAt.getTime()) / 1000);
 
   await db
@@ -637,7 +722,6 @@ export async function completeQuiz(
     wrongAnswers,
     skippedQuestions,
     timeTaken: timeSpent,
-    passed: true,
     rank,
     resultId: attemptId,
   };

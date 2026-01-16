@@ -45,6 +45,7 @@ export interface QuizListItem {
   isLiked: boolean;
   isBookmarked: boolean;
   isFeatured: boolean;
+  status: "draft" | "scheduled" | "active" | "completed" | "archived";
 }
 
 export interface CategoryListItem {
@@ -81,7 +82,8 @@ export interface StartQuizResponse {
   attemptId: string;
   quizId: string;
   startedAt: string;
-  questions: QuizQuestion[];
+  question: QuizQuestion;
+  currentQuestion: number;
   totalQuestions: number;
   totalMarks: number;
   timerDuration?: number;
@@ -105,14 +107,15 @@ export interface QuizOption {
 export interface SubmitAnswerRequest {
   questionId: string;
   selectedOptionIds: string[];
-  timeTaken?: number;
 }
 
 export interface SubmitAnswerResponse {
   answerId: string;
-  questionId: string;
   saved: boolean;
-  message: string;
+  nextQuestion?: QuizQuestion;
+  currentQuestion?: number;
+  totalQuestions?: number;
+  isComplete?: boolean;
 }
 
 export interface CompleteQuizRequest {
@@ -129,7 +132,6 @@ export interface CompleteQuizResponse {
   wrongAnswers: number;
   skippedQuestions: number;
   timeTaken: number;
-  passed: boolean;
   rank?: number;
   resultId: string;
 }

@@ -130,7 +130,6 @@ const studentQuizRoutes = new Elysia({ prefix: "/student/quiz" })
       body: t.Object({
         questionId: t.String({ format: "uuid" }),
         selectedOptionIds: t.Array(t.String({ format: "uuid" }), { minItems: 1, maxItems: 1 }),
-        timeTaken: t.Optional(t.Number({ minimum: 0 })),
       }),
       detail: {
         tags: ["Student - Quiz Attempts"],

@@ -11,6 +11,7 @@ import {
 } from "../shared/schema";
 import { ValidationError, NotFoundError, BadRequestError } from "../../utils/errors.util";
 import { QUIZ_CONFIG } from "../shared/config";
+import * as quizRedis from "../shared/redis.service";
 import type {
   CreateCategoryBody,
   UpdateCategoryBody,
@@ -315,6 +316,8 @@ export async function addQuestions(quizId: string, data: AddQuestionsBody) {
     })
     .where(eq(quizzes.id, quizId));
 
+  await quizRedis.invalidateQuizCache(quizId);
+
   return insertedQuestions;
 }
 
@@ -390,6 +393,8 @@ export async function updateQuestion(questionId: string, data: UpdateQuestionBod
     .where(eq(quizQuestions.id, questionId))
     .returning();
 
+  await quizRedis.invalidateQuizCache(question.quizId);
+
   return updated;
 }
 
@@ -409,6 +414,8 @@ export async function deleteQuestion(questionId: string) {
       updatedAt: new Date(),
     })
     .where(eq(quizzes.id, question.quizId));
+
+  await quizRedis.invalidateQuizCache(question.quizId);
 
   return { success: true };
 }
