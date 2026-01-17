@@ -2,11 +2,13 @@ import { db } from "../../db";
 import {
   eventCategories,
   events,
+  eventSchedules,
   eventTicketCategories,
   eventOrders,
   eventOrderItems,
   eventTickets,
 } from "../shared/schema";
+import { venues, hosts, addresses } from "../../db/schema/global";
 import {
   EventListFilters,
   EventListItem,
@@ -49,52 +51,35 @@ export async function browseEvents(
     conditions.push(eq(events.categoryId, filters.categoryId));
   }
 
-  if (filters.city) {
-    conditions.push(ilike(events.city, `%${filters.city}%`));
-  }
-
-  if (filters.state) {
-    conditions.push(ilike(events.state, `%${filters.state}%`));
-  }
-
-  if (filters.startDate) {
-    conditions.push(gte(events.eventDate, filters.startDate));
-  }
-
-  if (filters.endDate) {
-    conditions.push(lte(events.eventDate, filters.endDate));
-  }
-
   if (filters.search) {
-    conditions.push(
-      or(
-        ilike(events.title, `%${filters.search}%`),
-        ilike(events.venueName, `%${filters.search}%`)
-      )!
-    );
+    conditions.push(ilike(events.name, `%${filters.search}%`));
   }
 
   const [eventsList, totalResult] = await Promise.all([
     db
       .select({
         id: events.id,
-        title: events.title,
+        name: events.name,
+        slug: events.slug,
+        posterImage: events.posterImage,
         coverImage: events.coverImage,
         categoryId: events.categoryId,
         categoryName: eventCategories.name,
-        eventDate: events.eventDate,
-        eventTime: events.eventTime,
-        venueName: events.venueName,
-        city: events.city,
-        state: events.state,
+        shortDescription: events.shortDescription,
+        venueId: events.venueId,
+        venueName: venues.name,
+        city: addresses.city,
+        state: addresses.state,
         totalCapacity: events.totalCapacity,
         status: events.status,
         likeCount: events.likeCount,
       })
       .from(events)
       .leftJoin(eventCategories, eq(events.categoryId, eventCategories.id))
+      .leftJoin(venues, eq(events.venueId, venues.id))
+      .leftJoin(addresses, eq(venues.addressId, addresses.id))
       .where(and(...conditions))
-      .orderBy(events.eventDate)
+      .orderBy(events.createdAt)
       .limit(limit)
       .offset(offset),
     db
@@ -104,6 +89,28 @@ export async function browseEvents(
   ]);
 
   const eventIds = eventsList.map((e) => e.id);
+
+  // Get earliest startTime for each event from eventSchedules
+  let earliestSchedules: { eventId: string; startTime: Date | null }[] = [];
+  if (eventIds.length > 0) {
+    const schedules = await db
+      .select({
+        eventId: eventSchedules.eventId,
+        startTime: sql<Date>`MIN(${eventSchedules.startTime})`.as("startTime"),
+      })
+      .from(eventSchedules)
+      .where(
+        and(
+          inArray(eventSchedules.eventId, eventIds),
+          eq(eventSchedules.isActive, true)
+        )
+      )
+      .groupBy(eventSchedules.eventId);
+    earliestSchedules = schedules;
+  }
+  const startTimeMap = new Map(
+    earliestSchedules.map((s) => [s.eventId, s.startTime])
+  );
 
   let ticketStats: {
     eventId: string;
@@ -166,15 +173,27 @@ export async function browseEvents(
     const totalCapacity = event.totalCapacity || 0;
     const bookedCount = stats.soldCount;
     const availableTickets = totalCapacity > 0 ? totalCapacity - bookedCount : 0;
+    const startTime = startTimeMap.get(event.id);
+
+    // Ensure startTime is a Date object before calling toISOString
+    let startTimeISO: string | null = null;
+    if (startTime) {
+      const dateObj = startTime instanceof Date ? startTime : new Date(startTime);
+      if (!isNaN(dateObj.getTime())) {
+        startTimeISO = dateObj.toISOString();
+      }
+    }
 
     return {
       id: event.id,
-      title: event.title,
+      name: event.name,
+      slug: event.slug,
+      posterImage: event.posterImage,
       coverImage: event.coverImage,
       categoryId: event.categoryId,
       categoryName: event.categoryName,
-      eventDate: event.eventDate,
-      eventTime: event.eventTime,
+      shortDescription: event.shortDescription,
+      startTime: startTimeISO,
       venueName: event.venueName,
       city: event.city,
       state: event.state,
@@ -208,28 +227,38 @@ export async function getEventDetails(eventId: string, userId?: string): Promise
       id: events.id,
       categoryId: events.categoryId,
       categoryName: eventCategories.name,
-      title: events.title,
-      coverImage: events.coverImage,
+      name: events.name,
+      slug: events.slug,
       description: events.description,
-      eventDate: events.eventDate,
-      eventTime: events.eventTime,
-      timeZone: events.timeZone,
-      duration: events.duration,
-      venueName: events.venueName,
-      address: events.address,
-      city: events.city,
-      state: events.state,
-      pincode: events.pincode,
-      googleMapsUrl: events.googleMapsUrl,
+      shortDescription: events.shortDescription,
+      posterImage: events.posterImage,
+      coverImage: events.coverImage,
       totalCapacity: events.totalCapacity,
-      hostName: events.hostName,
-      hostEmail: events.hostEmail,
-      hostPhone: events.hostPhone,
       status: events.status,
       likeCount: events.likeCount,
+      venueId: events.venueId,
+      venueName: venues.name,
+      venueSlug: venues.slug,
+      venueCapacity: venues.capacity,
+      venueGoogleMapsUrl: venues.googleMapsUrl,
+      venueAddressId: venues.addressId,
+      addressStreetAddress: addresses.streetAddress,
+      addressCity: addresses.city,
+      addressState: addresses.state,
+      addressPincode: addresses.pincode,
+      addressCountry: addresses.country,
+      hostId: events.hostId,
+      hostName: hosts.hostName,
+      hostSlug: hosts.slug,
+      hostDescription: hosts.description,
+      hostLogo: hosts.logo,
+      hostIsVerified: hosts.isVerified,
     })
     .from(events)
     .leftJoin(eventCategories, eq(events.categoryId, eventCategories.id))
+    .leftJoin(venues, eq(events.venueId, venues.id))
+    .leftJoin(addresses, eq(venues.addressId, addresses.id))
+    .leftJoin(hosts, eq(events.hostId, hosts.id))
     .where(and(eq(events.id, eventId), eq(events.status, "published"), eq(events.isActive, true)))
     .limit(1);
 
@@ -238,6 +267,18 @@ export async function getEventDetails(eventId: string, userId?: string): Promise
   }
 
   const event = eventData[0];
+
+  // Get event schedules
+  const schedulesData = await db
+    .select({
+      id: eventSchedules.id,
+      startTime: eventSchedules.startTime,
+      timeZone: eventSchedules.timeZone,
+      isActive: eventSchedules.isActive,
+    })
+    .from(eventSchedules)
+    .where(and(eq(eventSchedules.eventId, eventId), eq(eventSchedules.isActive, true)))
+    .orderBy(eventSchedules.startTime);
 
   const soldResult = await db
     .select({
@@ -292,28 +333,62 @@ export async function getEventDetails(eventId: string, userId?: string): Promise
     isBookmarked = interactions.bookmarked.includes(eventId);
   }
 
+  const schedules = schedulesData.map((s) => {
+    const dateObj = s.startTime instanceof Date ? s.startTime : new Date(s.startTime);
+    const startTimeISO = !isNaN(dateObj.getTime()) ? dateObj.toISOString() : "";
+    return {
+      id: s.id,
+      startTime: startTimeISO,
+      timeZone: s.timeZone,
+      isActive: s.isActive,
+    };
+  });
+
+  const venue: EventDetail["venue"] = event.venueId
+    ? {
+        id: event.venueId,
+        name: event.venueName || "",
+        slug: event.venueSlug || "",
+        capacity: event.venueCapacity,
+        address: event.venueAddressId
+          ? {
+              streetAddress: event.addressStreetAddress,
+              city: event.addressCity,
+              state: event.addressState,
+              pincode: event.addressPincode,
+              country: event.addressCountry,
+            }
+          : null,
+        googleMapsUrl: event.venueGoogleMapsUrl,
+      }
+    : null;
+
+  const host: EventDetail["host"] = event.hostId
+    ? {
+        id: event.hostId,
+        hostName: event.hostName || "",
+        slug: event.hostSlug || "",
+        description: event.hostDescription,
+        logo: event.hostLogo,
+        isVerified: event.hostIsVerified || false,
+      }
+    : null;
+
   return {
     id: event.id,
     categoryId: event.categoryId,
     categoryName: event.categoryName,
-    title: event.title,
+    name: event.name,
+    slug: event.slug,
+    description: event.description,
+    shortDescription: event.shortDescription,
+    posterImage: event.posterImage,
     coverImage: event.coverImage,
-    description: event.description as { content: string },
-    eventDate: event.eventDate,
-    eventTime: event.eventTime,
-    timeZone: event.timeZone,
-    duration: event.duration,
-    venueName: event.venueName,
-    address: event.address,
-    city: event.city,
-    state: event.state,
-    pincode: event.pincode,
-    googleMapsUrl: event.googleMapsUrl,
+    schedules,
+    venue,
+    host,
     totalCapacity: event.totalCapacity,
     bookedCount,
-    hostName: event.hostName,
-    hostEmail: event.hostEmail,
-    hostPhone: event.hostPhone,
     status: event.status as "draft" | "published" | "cancelled" | "completed",
     ticketCategories,
     likeCount: event.likeCount || 0,
@@ -336,7 +411,7 @@ export async function bookTickets(
   const eventData = await db
     .select({
       id: events.id,
-      title: events.title,
+      name: events.name,
       status: events.status,
       platformFeeType: events.platformFeeType,
       platformFeePercentage: events.platformFeePercentage,
@@ -429,7 +504,7 @@ export async function bookTickets(
     receipt: orderNumber,
     notes: {
       eventId,
-      eventTitle: event.title,
+      eventName: event.name,
       userId,
     },
   });
@@ -478,7 +553,7 @@ export async function bookTickets(
     orderId: order.id,
     orderNumber: order.orderNumber,
     eventId,
-    eventTitle: event.title,
+    eventName: event.name,
     ticketCategoryTitle: ticketCategory.ticketTitle,
     quantity,
     ticketPrice,
@@ -515,12 +590,11 @@ export async function getMyOrders(
       .select({
         orderId: eventOrders.id,
         eventId: events.id,
-        eventTitle: events.title,
-        eventDate: events.eventDate,
-        eventTime: events.eventTime,
-        venueName: events.venueName,
-        city: events.city,
+        eventName: events.name,
         coverImage: events.coverImage,
+        venueId: events.venueId,
+        venueName: venues.name,
+        venueCity: addresses.city,
         ticketCategoryTitle: eventTicketCategories.ticketTitle,
         quantity: eventOrderItems.quantity,
         pricePerTicket: eventOrderItems.pricePerTicket,
@@ -534,6 +608,8 @@ export async function getMyOrders(
       .from(eventOrders)
       .innerJoin(eventOrderItems, eq(eventOrders.id, eventOrderItems.orderId))
       .innerJoin(events, eq(eventOrders.eventId, events.id))
+      .leftJoin(venues, eq(events.venueId, venues.id))
+      .leftJoin(addresses, eq(venues.addressId, addresses.id))
       .innerJoin(
         eventTicketCategories,
         eq(eventOrderItems.ticketCategoryId, eventTicketCategories.id)
@@ -548,25 +624,56 @@ export async function getMyOrders(
       .where(eq(eventOrders.userId, userId)),
   ]);
 
-  const orders: MyOrder[] = ordersData.map((order) => ({
-    orderId: order.orderId,
-    eventId: order.eventId,
-    eventTitle: order.eventTitle,
-    eventDate: order.eventDate,
-    eventTime: order.eventTime,
-    venueName: order.venueName,
-    city: order.city,
-    coverImage: order.coverImage,
-    ticketCategoryTitle: order.ticketCategoryTitle,
-    quantity: order.quantity,
-    ticketPrice: parseFloat(order.pricePerTicket),
-    platformFee: parseFloat(order.platformFee),
-    totalAmount: parseFloat(order.totalAmount),
-    paymentStatus: order.paymentStatus as "pending" | "completed" | "failed" | "expired",
-    paymentId: order.razorpayPaymentId,
-    createdAt: order.createdAt.toISOString(),
-    expiresAt: order.expiresAt ? order.expiresAt.toISOString() : null,
-  }));
+  const orderEventIds = [...new Set(ordersData.map((o) => o.eventId))];
+  const earliestSchedules: { eventId: string; startTime: Date | null }[] = [];
+  if (orderEventIds.length > 0) {
+    const schedules = await db
+      .select({
+        eventId: eventSchedules.eventId,
+        startTime: sql<Date>`MIN(${eventSchedules.startTime})`.as("startTime"),
+      })
+      .from(eventSchedules)
+      .where(
+        and(
+          inArray(eventSchedules.eventId, orderEventIds),
+          eq(eventSchedules.isActive, true)
+        )
+      )
+      .groupBy(eventSchedules.eventId);
+    earliestSchedules.push(...schedules);
+  }
+  const startTimeMap = new Map(
+    earliestSchedules.map((s) => [s.eventId, s.startTime])
+  );
+
+  const orders: MyOrder[] = ordersData.map((order) => {
+    const startTime = startTimeMap.get(order.eventId);
+    let startTimeISO: string | null = null;
+    if (startTime) {
+      const dateObj = startTime instanceof Date ? startTime : new Date(startTime);
+      if (!isNaN(dateObj.getTime())) {
+        startTimeISO = dateObj.toISOString();
+      }
+    }
+    return {
+      orderId: order.orderId,
+      eventId: order.eventId,
+      eventName: order.eventName,
+      startTime: startTimeISO,
+      venueName: order.venueName,
+      city: order.venueCity,
+      coverImage: order.coverImage,
+      ticketCategoryTitle: order.ticketCategoryTitle,
+      quantity: order.quantity,
+      ticketPrice: parseFloat(order.pricePerTicket),
+      platformFee: parseFloat(order.platformFee),
+      totalAmount: parseFloat(order.totalAmount),
+      paymentStatus: order.paymentStatus as "pending" | "completed" | "failed" | "expired",
+      paymentId: order.razorpayPaymentId,
+      createdAt: order.createdAt instanceof Date ? order.createdAt.toISOString() : new Date(order.createdAt).toISOString(),
+      expiresAt: order.expiresAt ? (order.expiresAt instanceof Date ? order.expiresAt.toISOString() : new Date(order.expiresAt).toISOString()) : null,
+    };
+  });
 
   const total = totalResult[0]?.count || 0;
   const totalPages = Math.ceil(total / validLimit);
@@ -601,14 +708,12 @@ export async function getMyTickets(
         qrCode: eventTickets.qrCode,
         orderId: eventTickets.orderId,
         eventId: eventTickets.eventId,
-        eventTitle: events.title,
-        eventDate: events.eventDate,
-        eventTime: events.eventTime,
-        venueName: events.venueName,
-        address: events.address,
-        city: events.city,
-        state: events.state,
+        eventName: events.name,
         coverImage: events.coverImage,
+        venueId: events.venueId,
+        venueName: venues.name,
+        venueCity: addresses.city,
+        venueState: addresses.state,
         ticketCategoryTitle: eventTicketCategories.ticketTitle,
         ticketPrice: eventTicketCategories.price,
         checkedInAt: eventTickets.checkedInAt,
@@ -616,9 +721,11 @@ export async function getMyTickets(
       .from(eventTickets)
       .innerJoin(eventOrders, eq(eventTickets.orderId, eventOrders.id))
       .innerJoin(events, eq(eventTickets.eventId, events.id))
+      .leftJoin(venues, eq(events.venueId, venues.id))
+      .leftJoin(addresses, eq(venues.addressId, addresses.id))
       .innerJoin(eventTicketCategories, eq(eventTickets.ticketCategoryId, eventTicketCategories.id))
       .where(and(eq(eventOrders.userId, userId), eq(eventOrders.paymentStatus, "completed")))
-      .orderBy(desc(events.eventDate))
+      .orderBy(desc(events.createdAt))
       .limit(validLimit)
       .offset(offset),
     db
@@ -628,18 +735,43 @@ export async function getMyTickets(
       .where(and(eq(eventOrders.userId, userId), eq(eventOrders.paymentStatus, "completed"))),
   ]);
 
+  const ticketEventIds = [...new Set(ticketsData.map((t) => t.eventId))];
+  const earliestSchedules: { eventId: string; startTime: Date | null }[] = [];
+  if (ticketEventIds.length > 0) {
+    const schedules = await db
+      .select({
+        eventId: eventSchedules.eventId,
+        startTime: sql<Date>`MIN(${eventSchedules.startTime})`.as("startTime"),
+      })
+      .from(eventSchedules)
+      .where(
+        and(
+          inArray(eventSchedules.eventId, ticketEventIds),
+          eq(eventSchedules.isActive, true)
+        )
+      )
+      .groupBy(eventSchedules.eventId);
+    earliestSchedules.push(...schedules);
+  }
+  const startTimeMap = new Map(
+    earliestSchedules.map((s) => [s.eventId, s.startTime])
+  );
+
   const tickets: MyTicket[] = ticketsData.map((ticket) => ({
     ticketId: ticket.ticketId,
     qrCode: ticket.qrCode,
     orderId: ticket.orderId,
     eventId: ticket.eventId,
-    eventTitle: ticket.eventTitle,
-    eventDate: ticket.eventDate,
-    eventTime: ticket.eventTime,
+    eventName: ticket.eventName,
+    startTime: (() => {
+      const startTime = startTimeMap.get(ticket.eventId);
+      if (!startTime) return null;
+      const dateObj = startTime instanceof Date ? startTime : new Date(startTime);
+      return !isNaN(dateObj.getTime()) ? dateObj.toISOString() : null;
+    })(),
     venueName: ticket.venueName,
-    address: ticket.address,
-    city: ticket.city,
-    state: ticket.state,
+    city: ticket.venueCity,
+    state: ticket.venueState,
     coverImage: ticket.coverImage,
     ticketCategoryTitle: ticket.ticketCategoryTitle,
     ticketPrice: parseFloat(ticket.ticketPrice),
@@ -667,20 +799,13 @@ export async function getTicketDetails(userId: string, ticketId: string): Promis
       qrCode: eventTickets.qrCode,
       checkedInAt: eventTickets.checkedInAt,
       eventId: eventTickets.eventId,
-      eventTitle: events.title,
+      eventName: events.name,
       coverImage: events.coverImage,
-      eventDate: events.eventDate,
-      eventTime: events.eventTime,
-      timeZone: events.timeZone,
-      duration: events.duration,
-      venueName: events.venueName,
-      address: events.address,
-      city: events.city,
-      state: events.state,
-      pincode: events.pincode,
-      googleMapsUrl: events.googleMapsUrl,
-      hostName: events.hostName,
       eventStatus: events.status,
+      venueId: events.venueId,
+      venueName: venues.name,
+      venueCity: addresses.city,
+      venueState: addresses.state,
       ticketCategoryId: eventTicketCategories.id,
       ticketTitle: eventTicketCategories.ticketTitle,
       ticketPrice: eventTicketCategories.price,
@@ -693,6 +818,8 @@ export async function getTicketDetails(userId: string, ticketId: string): Promis
     .from(eventTickets)
     .innerJoin(eventOrders, eq(eventTickets.orderId, eventOrders.id))
     .innerJoin(events, eq(eventTickets.eventId, events.id))
+    .leftJoin(venues, eq(events.venueId, venues.id))
+    .leftJoin(addresses, eq(venues.addressId, addresses.id))
     .innerJoin(eventTicketCategories, eq(eventTickets.ticketCategoryId, eventTicketCategories.id))
     .where(and(eq(eventTickets.id, ticketId), eq(eventOrders.userId, userId)))
     .limit(1);
@@ -703,6 +830,24 @@ export async function getTicketDetails(userId: string, ticketId: string): Promis
 
   const ticket = ticketData[0];
 
+  // Get earliest startTime from eventSchedules
+  const scheduleData = await db
+    .select({
+      startTime: sql<Date>`MIN(${eventSchedules.startTime})`.as("startTime"),
+      timeZone: sql<string>`MIN(${eventSchedules.timeZone})`.as("timeZone"),
+    })
+    .from(eventSchedules)
+    .where(
+      and(
+        eq(eventSchedules.eventId, ticket.eventId),
+        eq(eventSchedules.isActive, true)
+      )
+    )
+    .groupBy(eventSchedules.eventId)
+    .limit(1);
+
+  const schedule = scheduleData[0];
+
   return {
     ticketId: ticket.ticketId,
     qrCode: ticket.qrCode,
@@ -711,19 +856,18 @@ export async function getTicketDetails(userId: string, ticketId: string): Promis
     checkedInAt: ticket.checkedInAt ? ticket.checkedInAt.toISOString() : null,
     event: {
       id: ticket.eventId,
-      title: ticket.eventTitle,
+      name: ticket.eventName,
       coverImage: ticket.coverImage,
-      eventDate: ticket.eventDate,
-      eventTime: ticket.eventTime,
-      timeZone: ticket.timeZone,
-      duration: ticket.duration,
+      startTime: schedule?.startTime
+        ? (() => {
+            const dateObj = schedule.startTime instanceof Date ? schedule.startTime : new Date(schedule.startTime);
+            return !isNaN(dateObj.getTime()) ? dateObj.toISOString() : null;
+          })()
+        : null,
+      timeZone: schedule?.timeZone || null,
       venueName: ticket.venueName,
-      address: ticket.address,
-      city: ticket.city,
-      state: ticket.state,
-      pincode: ticket.pincode ?? "",
-      googleMapsUrl: ticket.googleMapsUrl ?? "",
-      hostName: ticket.hostName ?? "",
+      city: ticket.venueCity,
+      state: ticket.venueState,
       status: ticket.eventStatus ?? "published",
     },
     ticketCategory: {

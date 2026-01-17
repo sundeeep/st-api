@@ -56,7 +56,7 @@ export const deleteCategoryHandler = async (context: AuthenticatedContext): Prom
 
 export const createEventHandler = async (context: AuthenticatedContext): Promise<SuccessResponse> => {
   const body = context.body as CreateEventBody;
-  const event = await eventService.createEvent(body, context.userId);
+  const event = await eventService.createEvent(body);
   return successResponse(event, "Event created successfully");
 };
 

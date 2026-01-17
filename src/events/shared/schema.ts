@@ -6,14 +6,12 @@ import {
   boolean,
   decimal,
   integer,
-  jsonb,
-  date,
-  time,
   index,
   pgEnum,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { usersProfile } from "../../auth/auth.schema";
+import { hosts, venues } from "../../db/schema/global";
 
 export const eventStatusEnum = pgEnum("event_status", [
   "draft",
@@ -35,6 +33,7 @@ export const eventCategories = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull().unique(),
+    icon: text("icon"),
     isActive: boolean("isActive").default(true),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -50,26 +49,16 @@ export const events = pgTable(
   "events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    createdBy: uuid("createdBy")
-      .notNull()
-      .references(() => usersProfile.id),
     categoryId: uuid("categoryId").references(() => eventCategories.id),
+    hostId: uuid("hostId").references(() => hosts.id),
+    venueId: uuid("venueId").references(() => venues.id),
 
-    title: text("title").notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    shortDescription: text("shortDescription"),
+    posterImage: text("posterImage"),
     coverImage: text("coverImage"),
-    description: jsonb("description").notNull().default({ content: "" }),
-
-    eventDate: date("eventDate").notNull(),
-    eventTime: time("eventTime"),
-    timeZone: text("timeZone").default("Asia/Kolkata"),
-    duration: integer("duration"),
-
-    venueName: text("venueName").notNull(),
-    address: text("address").notNull(),
-    city: text("city").notNull(),
-    state: text("state").notNull(),
-    pincode: text("pincode"),
-    googleMapsUrl: text("googleMapsUrl"),
 
     totalCapacity: integer("totalCapacity"),
     bookedCount: integer("bookedCount").default(0),
@@ -81,12 +70,12 @@ export const events = pgTable(
     ),
     platformFeeFixed: decimal("platformFeeFixed", { precision: 10, scale: 2 }).default("0"),
 
-    hostName: text("hostName"),
-    hostEmail: text("hostEmail"),
-    hostPhone: text("hostPhone"),
+    averageRating: decimal("averageRating", { precision: 3, scale: 2 }).default("0"),
+    ratingCount: integer("ratingCount").default(0),
 
     status: eventStatusEnum("status").default("draft"),
     isActive: boolean("isActive").default(true),
+    isFeatured: boolean("isFeatured").default(false),
     publishedAt: timestamp("publishedAt"),
 
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -95,10 +84,31 @@ export const events = pgTable(
   (table) => [
     {
       categoryIdx: index("idx_events_category").on(table.categoryId),
-      dateIdx: index("idx_events_date").on(table.eventDate),
-      statusDateIdx: index("idx_events_status_date").on(table.status, table.eventDate),
-      cityIdx: index("idx_events_city").on(table.city),
-      createdByIdx: index("idx_events_created_by").on(table.createdBy),
+      hostIdIdx: index("idx_events_host_id").on(table.hostId),
+      venueIdIdx: index("idx_events_venue_id").on(table.venueId),
+      slugIdx: index("idx_events_slug").on(table.slug),
+      statusIdx: index("idx_events_status").on(table.status),
+      isFeaturedIdx: index("idx_events_is_featured").on(table.isFeatured),
+    },
+  ]
+);
+
+export const eventSchedules = pgTable(
+  "event_schedules",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("eventId")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    startTime: timestamp("startTime").notNull(),
+    timeZone: text("timeZone").default("Asia/Kolkata"),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => [
+    {
+      eventIdIdx: index("idx_event_schedules_event_id").on(table.eventId),
+      startTimeIdx: index("idx_event_schedules_start_time").on(table.startTime),
     },
   ]
 );
@@ -253,3 +263,6 @@ export type NewEventOrderItem = InferInsertModel<typeof eventOrderItems>;
 
 export type EventTicket = InferSelectModel<typeof eventTickets>;
 export type NewEventTicket = InferInsertModel<typeof eventTickets>;
+
+export type EventSchedule = InferSelectModel<typeof eventSchedules>;
+export type NewEventSchedule = InferInsertModel<typeof eventSchedules>;

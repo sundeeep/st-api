@@ -1,13 +1,15 @@
-import { eq, desc, and, sql, count, sum, gte, lte, ilike, or } from "drizzle-orm";
+import { eq, desc, and, sql, count, sum, gte, lte, ilike, or, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import {
   eventCategories,
   events,
+  eventSchedules,
   eventTicketCategories,
   eventOrders,
   eventOrderItems,
   eventTickets,
 } from "../shared/schema";
+import { venues, hosts, addresses } from "../../db/schema/global";
 import { ValidationError, NotFoundError, BadRequestError } from "../../utils/errors.util";
 import { EVENT_CONFIG } from "../shared/config";
 import type {
@@ -33,7 +35,13 @@ export async function createCategory(data: CreateCategoryBody, createdBy: string
     throw ValidationError("Category with this name already exists");
   }
 
-  const [category] = await db.insert(eventCategories).values({ name: data.name }).returning();
+  const [category] = await db
+    .insert(eventCategories)
+    .values({
+      name: data.name,
+      icon: data.icon,
+    })
+    .returning();
 
   return category;
 }
@@ -43,6 +51,7 @@ export async function getCategories() {
     .select({
       id: eventCategories.id,
       name: eventCategories.name,
+      icon: eventCategories.icon,
       isActive: eventCategories.isActive,
       createdAt: eventCategories.createdAt,
     })
@@ -102,7 +111,7 @@ export async function deleteCategory(categoryId: string) {
   return { deleted: true };
 }
 
-export async function createEvent(data: CreateEventBody, createdBy: string) {
+export async function createEvent(data: CreateEventBody) {
   if (data.categoryId) {
     const category = await db
       .select()
@@ -115,31 +124,36 @@ export async function createEvent(data: CreateEventBody, createdBy: string) {
     }
   }
 
+  if (data.hostId) {
+    const host = await db.select().from(hosts).where(eq(hosts.id, data.hostId)).limit(1);
+    if (!host.length) {
+      throw ValidationError("Invalid host");
+    }
+  }
+
+  if (data.venueId) {
+    const venue = await db.select().from(venues).where(eq(venues.id, data.venueId)).limit(1);
+    if (!venue.length) {
+      throw ValidationError("Invalid venue");
+    }
+  }
+
   const [event] = await db
     .insert(events)
     .values({
-      createdBy,
       categoryId: data.categoryId,
-      title: data.title,
-      coverImage: data.coverImage,
-      description: data.description,
-      eventDate: data.eventDate,
-      eventTime: data.eventTime,
-      timeZone: data.timeZone || "Asia/Kolkata",
-      duration: data.duration,
-      venueName: data.venueName,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      pincode: data.pincode,
-      googleMapsUrl: data.googleMapsUrl,
-      totalCapacity: data.totalCapacity,
+      hostId: data.hostId,
+      venueId: data.venueId,
+      name: data.name,
+      slug: data.slug,
+      description: data.description || null,
+      shortDescription: data.shortDescription || null,
+      posterImage: data.posterImage || null,
+      coverImage: data.coverImage || null,
+      totalCapacity: data.totalCapacity || null,
       platformFeeType: data.platformFeeType || "percentage",
       platformFeePercentage: data.platformFeePercentage?.toString() || "5.00",
       platformFeeFixed: data.platformFeeFixed?.toString() || "0",
-      hostName: data.hostName,
-      hostEmail: data.hostEmail,
-      hostPhone: data.hostPhone,
     })
     .returning();
 
@@ -161,43 +175,21 @@ export async function getEvents(filters: EventFilters) {
     conditions.push(eq(events.status, filters.status));
   }
 
-  if (filters.city) {
-    conditions.push(ilike(events.city, `%${filters.city}%`));
-  }
-
-  if (filters.state) {
-    conditions.push(ilike(events.state, `%${filters.state}%`));
-  }
-
-  if (filters.startDate) {
-    conditions.push(gte(events.eventDate, filters.startDate));
-  }
-
-  if (filters.endDate) {
-    conditions.push(lte(events.eventDate, filters.endDate));
-  }
-
   if (filters.search) {
-    conditions.push(
-      or(
-        ilike(events.title, `%${filters.search}%`),
-        ilike(events.city, `%${filters.search}%`),
-        ilike(events.venueName, `%${filters.search}%`)
-      )
-    );
+    conditions.push(ilike(events.name, `%${filters.search}%`));
   }
 
   const [eventsList, totalCount] = await Promise.all([
     db
       .select({
         id: events.id,
-        title: events.title,
+        name: events.name,
+        slug: events.slug,
+        posterImage: events.posterImage,
         coverImage: events.coverImage,
-        eventDate: events.eventDate,
-        eventTime: events.eventTime,
-        city: events.city,
-        state: events.state,
-        venueName: events.venueName,
+        city: addresses.city,
+        state: addresses.state,
+        venueName: venues.name,
         totalCapacity: events.totalCapacity,
         bookedCount: events.bookedCount,
         status: events.status,
@@ -207,6 +199,8 @@ export async function getEvents(filters: EventFilters) {
       })
       .from(events)
       .leftJoin(eventCategories, eq(events.categoryId, eventCategories.id))
+      .leftJoin(venues, eq(events.venueId, venues.id))
+      .leftJoin(addresses, eq(venues.addressId, addresses.id))
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(events.createdAt))
       .limit(limit)
@@ -217,8 +211,66 @@ export async function getEvents(filters: EventFilters) {
       .where(conditions.length ? and(...conditions) : undefined),
   ]);
 
+  const eventIds = eventsList.map((e) => e.id);
+
+  // Get earliest startTime and timeZone for each event from eventSchedules
+  let earliestSchedules: {
+    eventId: string;
+    startTime: Date | null;
+    timeZone: string | null;
+  }[] = [];
+  if (eventIds.length > 0) {
+    // Get all active schedules for these events
+    const allSchedules = await db
+      .select({
+        eventId: eventSchedules.eventId,
+        startTime: eventSchedules.startTime,
+        timeZone: eventSchedules.timeZone,
+      })
+      .from(eventSchedules)
+      .where(
+        and(
+          inArray(eventSchedules.eventId, eventIds),
+          eq(eventSchedules.isActive, true)
+        )
+      );
+
+    // Group by eventId and find the earliest startTime with its timeZone
+    const scheduleMap = new Map<string, { startTime: Date; timeZone: string | null }>();
+    for (const schedule of allSchedules) {
+      const existing = scheduleMap.get(schedule.eventId);
+      if (!existing || (schedule.startTime && (!existing.startTime || schedule.startTime < existing.startTime))) {
+        scheduleMap.set(schedule.eventId, {
+          startTime: schedule.startTime,
+          timeZone: schedule.timeZone,
+        });
+      }
+    }
+    earliestSchedules = Array.from(scheduleMap.entries()).map(([eventId, data]) => ({
+      eventId,
+      startTime: data.startTime,
+      timeZone: data.timeZone,
+    }));
+  }
+  const scheduleMap = new Map(
+    earliestSchedules.map((s) => [
+      s.eventId,
+      { startTime: s.startTime, timeZone: s.timeZone },
+    ])
+  );
+
+  // Map events with schedule information
+  const eventsWithSchedules = eventsList.map((event) => {
+    const schedule = scheduleMap.get(event.id);
+    return {
+      ...event,
+      startTime: schedule?.startTime || null,
+      timeZone: schedule?.timeZone || null,
+    };
+  });
+
   return {
-    events: eventsList,
+    events: eventsWithSchedules,
     total: totalCount[0]?.count || 0,
   };
 }
@@ -227,32 +279,24 @@ export async function getEventById(eventId: string) {
   const event = await db
     .select({
       id: events.id,
-      createdBy: events.createdBy,
       categoryId: events.categoryId,
       categoryName: eventCategories.name,
-      title: events.title,
-      coverImage: events.coverImage,
+      hostId: events.hostId,
+      venueId: events.venueId,
+      name: events.name,
+      slug: events.slug,
       description: events.description,
-      eventDate: events.eventDate,
-      eventTime: events.eventTime,
-      timeZone: events.timeZone,
-      duration: events.duration,
-      venueName: events.venueName,
-      address: events.address,
-      city: events.city,
-      state: events.state,
-      pincode: events.pincode,
-      googleMapsUrl: events.googleMapsUrl,
+      shortDescription: events.shortDescription,
+      posterImage: events.posterImage,
+      coverImage: events.coverImage,
       totalCapacity: events.totalCapacity,
       bookedCount: events.bookedCount,
       platformFeeType: events.platformFeeType,
       platformFeePercentage: events.platformFeePercentage,
       platformFeeFixed: events.platformFeeFixed,
-      hostName: events.hostName,
-      hostEmail: events.hostEmail,
-      hostPhone: events.hostPhone,
       status: events.status,
       isActive: events.isActive,
+      isFeatured: events.isFeatured,
       publishedAt: events.publishedAt,
       createdAt: events.createdAt,
       updatedAt: events.updatedAt,
@@ -266,14 +310,21 @@ export async function getEventById(eventId: string) {
     throw NotFoundError("Event not found");
   }
 
-  const tickets = await db
-    .select()
-    .from(eventTicketCategories)
-    .where(eq(eventTicketCategories.eventId, eventId));
+  const [tickets, schedules] = await Promise.all([
+    db
+      .select()
+      .from(eventTicketCategories)
+      .where(eq(eventTicketCategories.eventId, eventId)),
+    db
+      .select()
+      .from(eventSchedules)
+      .where(eq(eventSchedules.eventId, eventId)),
+  ]);
 
   return {
     ...event[0],
     tickets,
+    schedules,
   };
 }
 
@@ -293,6 +344,20 @@ export async function updateEvent(eventId: string, data: UpdateEventBody) {
 
     if (!category.length) {
       throw ValidationError("Invalid category");
+    }
+  }
+
+  if (data.hostId) {
+    const host = await db.select().from(hosts).where(eq(hosts.id, data.hostId)).limit(1);
+    if (!host.length) {
+      throw ValidationError("Invalid host");
+    }
+  }
+
+  if (data.venueId) {
+    const venue = await db.select().from(venues).where(eq(venues.id, data.venueId)).limit(1);
+    if (!venue.length) {
+      throw ValidationError("Invalid venue");
     }
   }
 
@@ -341,13 +406,28 @@ export async function publishEvent(eventId: string) {
     throw BadRequestError("Event is already published");
   }
 
-  const tickets = await db
-    .select()
-    .from(eventTicketCategories)
-    .where(eq(eventTicketCategories.eventId, eventId));
+  const [tickets, schedules] = await Promise.all([
+    db
+      .select()
+      .from(eventTicketCategories)
+      .where(eq(eventTicketCategories.eventId, eventId)),
+    db
+      .select()
+      .from(eventSchedules)
+      .where(
+        and(
+          eq(eventSchedules.eventId, eventId),
+          eq(eventSchedules.isActive, true)
+        )
+      ),
+  ]);
 
   if (!tickets.length) {
     throw BadRequestError("Cannot publish event without ticket categories");
+  }
+
+  if (!schedules.length) {
+    throw BadRequestError("Cannot publish event without at least one active schedule");
   }
 
   const [updated] = await db

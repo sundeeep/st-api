@@ -11,15 +11,17 @@ export interface EventListFilters {
 
 export interface EventListItem {
   id: string;
-  title: string;
+  name: string;
+  slug: string;
+  posterImage: string | null;
   coverImage: string | null;
   categoryId: string | null;
   categoryName: string | null;
-  eventDate: string;
-  eventTime: string | null;
-  venueName: string;
-  city: string;
-  state: string;
+  shortDescription: string | null;
+  startTime: string | null;
+  venueName: string | null;
+  city: string | null;
+  state: string | null;
   totalCapacity: number | null;
   bookedCount: number;
   availableTickets: number;
@@ -35,31 +37,55 @@ export interface EventDetail {
   id: string;
   categoryId: string | null;
   categoryName: string | null;
-  title: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  shortDescription: string | null;
+  posterImage: string | null;
   coverImage: string | null;
-  description: {
-    content: string;
-  };
-  eventDate: string;
-  eventTime: string | null;
-  timeZone: string | null;
-  duration: number | null;
-  venueName: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string | null;
-  googleMapsUrl: string | null;
+  schedules: EventScheduleDetail[];
+  venue: VenueDetail | null;
+  host: HostDetail | null;
   totalCapacity: number | null;
   bookedCount: number;
-  hostName: string | null;
-  hostEmail: string | null;
-  hostPhone: string | null;
   status: "draft" | "published" | "cancelled" | "completed";
   ticketCategories: TicketCategoryDetail[];
   likeCount: number;
   isLiked?: boolean;
   isBookmarked?: boolean;
+}
+
+export interface EventScheduleDetail {
+  id: string;
+  startTime: string;
+  timeZone: string | null;
+  isActive: boolean;
+}
+
+export interface VenueDetail {
+  id: string;
+  name: string;
+  slug: string;
+  capacity: number | null;
+  address: AddressDetail | null;
+  googleMapsUrl: string | null;
+}
+
+export interface AddressDetail {
+  streetAddress: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  country: string | null;
+}
+
+export interface HostDetail {
+  id: string;
+  hostName: string;
+  slug: string;
+  description: string | null;
+  logo: string | null;
+  isVerified: boolean;
 }
 
 export interface TicketCategoryDetail {
@@ -86,7 +112,7 @@ export interface BookTicketResponse {
   orderId: string;
   orderNumber: string;
   eventId: string;
-  eventTitle: string;
+  eventName: string;
   ticketCategoryTitle: string;
   quantity: number;
   ticketPrice: number;
@@ -106,11 +132,10 @@ export interface BookTicketResponse {
 export interface MyOrder {
   orderId: string;
   eventId: string;
-  eventTitle: string;
-  eventDate: string;
-  eventTime: string | null;
-  venueName: string;
-  city: string;
+  eventName: string;
+  startTime: string | null;
+  venueName: string | null;
+  city: string | null;
   coverImage: string | null;
   ticketCategoryTitle: string;
   quantity: number;
@@ -128,13 +153,11 @@ export interface MyTicket {
   qrCode: string;
   orderId: string;
   eventId: string;
-  eventTitle: string;
-  eventDate: string;
-  eventTime: string | null;
-  venueName: string;
-  address: string;
-  city: string;
-  state: string;
+  eventName: string;
+  startTime: string | null;
+  venueName: string | null;
+  city: string | null;
+  state: string | null;
   coverImage: string | null;
   ticketCategoryTitle: string;
   ticketPrice: number;
@@ -151,19 +174,13 @@ export interface TicketDetail {
   checkedInAt: string | null;
   event: {
     id: string;
-    title: string;
+    name: string;
     coverImage: string | null;
-    eventDate: string;
-    eventTime: string | null;
+    startTime: string | null;
     timeZone: string | null;
-    duration: number | null;
-    venueName: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string | null;
-    googleMapsUrl: string | null;
-    hostName: string | null;
+    venueName: string | null;
+    city: string | null;
+    state: string | null;
     status: string;
   };
   ticketCategory: {

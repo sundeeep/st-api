@@ -12,6 +12,7 @@ const adminEventRoutes = new Elysia({ prefix: "/admin/events" })
     {
       body: t.Object({
         name: t.String({ minLength: 2, maxLength: 100 }),
+        icon: t.Optional(t.String()),
       }),
       detail: {
         tags: ["Admin - Event Categories"],
@@ -42,6 +43,7 @@ const adminEventRoutes = new Elysia({ prefix: "/admin/events" })
       }),
       body: t.Object({
         name: t.Optional(t.String({ minLength: 2, maxLength: 100 })),
+        icon: t.Optional(t.String()),
         isActive: t.Optional(t.Boolean()),
       }),
       detail: {
@@ -81,30 +83,20 @@ const adminEventRoutes = new Elysia({ prefix: "/admin/events" })
     {
       body: t.Object({
         categoryId: t.Optional(t.String({ format: "uuid" })),
-        title: t.String({ minLength: 3, maxLength: 200 }),
+        hostId: t.Optional(t.String({ format: "uuid" })),
+        venueId: t.Optional(t.String({ format: "uuid" })),
+        name: t.String({ minLength: 3, maxLength: 200 }),
+        slug: t.String({ minLength: 3, maxLength: 200 }),
+        description: t.Optional(t.String()),
+        shortDescription: t.Optional(t.String({ maxLength: 500 })),
+        posterImage: t.Optional(t.String()),
         coverImage: t.Optional(t.String()),
-        description: t.Object({
-          content: t.String(),
-        }),
-        eventDate: t.String({ format: "date" }),
-        eventTime: t.Optional(t.String()),
-        timeZone: t.Optional(t.String()),
-        duration: t.Optional(t.Number({ minimum: 1 })),
-        venueName: t.String({ minLength: 2 }),
-        address: t.String({ minLength: 5 }),
-        city: t.String({ minLength: 2 }),
-        state: t.String({ minLength: 2 }),
-        pincode: t.Optional(t.String({ pattern: "^[0-9]{6}$" })),
-        googleMapsUrl: t.Optional(t.String()),
         totalCapacity: t.Optional(t.Number({ minimum: 1 })),
         platformFeeType: t.Optional(
           t.Union([t.Literal("percentage"), t.Literal("fixed"), t.Literal("both")])
         ),
         platformFeePercentage: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
         platformFeeFixed: t.Optional(t.Number({ minimum: 0 })),
-        hostName: t.Optional(t.String()),
-        hostEmail: t.Optional(t.String({ format: "email" })),
-        hostPhone: t.Optional(t.String()),
       }),
       detail: {
         tags: ["Admin - Events"],
@@ -164,32 +156,21 @@ const adminEventRoutes = new Elysia({ prefix: "/admin/events" })
       }),
       body: t.Object({
         categoryId: t.Optional(t.String({ format: "uuid" })),
-        title: t.Optional(t.String({ minLength: 3, maxLength: 200 })),
+        hostId: t.Optional(t.String({ format: "uuid" })),
+        venueId: t.Optional(t.String({ format: "uuid" })),
+        name: t.Optional(t.String({ minLength: 3, maxLength: 200 })),
+        slug: t.Optional(t.String({ minLength: 3, maxLength: 200 })),
+        description: t.Optional(t.String()),
+        shortDescription: t.Optional(t.String({ maxLength: 500 })),
+        posterImage: t.Optional(t.String()),
         coverImage: t.Optional(t.String()),
-        description: t.Optional(
-          t.Object({
-            content: t.String(),
-          })
-        ),
-        eventDate: t.Optional(t.String({ format: "date" })),
-        eventTime: t.Optional(t.String()),
-        timeZone: t.Optional(t.String()),
-        duration: t.Optional(t.Number({ minimum: 1 })),
-        venueName: t.Optional(t.String({ minLength: 2 })),
-        address: t.Optional(t.String({ minLength: 5 })),
-        city: t.Optional(t.String({ minLength: 2 })),
-        state: t.Optional(t.String({ minLength: 2 })),
-        pincode: t.Optional(t.String({ pattern: "^[0-9]{6}$" })),
-        googleMapsUrl: t.Optional(t.String()),
         totalCapacity: t.Optional(t.Number({ minimum: 1 })),
         platformFeeType: t.Optional(
           t.Union([t.Literal("percentage"), t.Literal("fixed"), t.Literal("both")])
         ),
         platformFeePercentage: t.Optional(t.Number({ minimum: 0, maximum: 100 })),
         platformFeeFixed: t.Optional(t.Number({ minimum: 0 })),
-        hostName: t.Optional(t.String()),
-        hostEmail: t.Optional(t.String({ format: "email" })),
-        hostPhone: t.Optional(t.String()),
+        isFeatured: t.Optional(t.Boolean()),
         status: t.Optional(
           t.Union([
             t.Literal("draft"),

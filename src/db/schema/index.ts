@@ -13,6 +13,7 @@ export * from "./organizations.schema";
 export * from "./opportunities.schema";
 export * from "./opportunityApplications.schema";
 export * from "./usersProfile.schema";
+export * from "./global";
 export * from "../../quiz/shared/schema";
 export * from "../../events/shared/schema";
 export * from "../../auth/auth.schema";

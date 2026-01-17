@@ -13,63 +13,46 @@ export interface AuthenticatedContext extends Context {
 
 export interface CreateCategoryBody {
   name: string;
+  icon?: string;
 }
 
 export interface UpdateCategoryBody {
   name?: string;
+  icon?: string;
   isActive?: boolean;
 }
 
 export interface CreateEventBody {
   categoryId?: string;
-  title: string;
+  hostId?: string;
+  venueId?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  shortDescription?: string;
+  posterImage?: string;
   coverImage?: string;
-  description: {
-    content: string;
-  };
-  eventDate: string;
-  eventTime?: string;
-  timeZone?: string;
-  duration?: number;
-  venueName: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode?: string;
-  googleMapsUrl?: string;
   totalCapacity?: number;
   platformFeeType?: "percentage" | "fixed" | "both";
   platformFeePercentage?: number;
   platformFeeFixed?: number;
-  hostName?: string;
-  hostEmail?: string;
-  hostPhone?: string;
 }
 
 export interface UpdateEventBody {
   categoryId?: string;
-  title?: string;
+  hostId?: string;
+  venueId?: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  shortDescription?: string;
+  posterImage?: string;
   coverImage?: string;
-  description?: {
-    content: string;
-  };
-  eventDate?: string;
-  eventTime?: string;
-  timeZone?: string;
-  duration?: number;
-  venueName?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  googleMapsUrl?: string;
   totalCapacity?: number;
   platformFeeType?: "percentage" | "fixed" | "both";
   platformFeePercentage?: number;
   platformFeeFixed?: number;
-  hostName?: string;
-  hostEmail?: string;
-  hostPhone?: string;
+  isFeatured?: boolean;
   status?: "draft" | "published" | "cancelled" | "completed";
   isActive?: boolean;
 }

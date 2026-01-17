@@ -8,6 +8,7 @@ import {
   timestamp,
   index,
   pgEnum,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
@@ -30,6 +31,10 @@ export const usersProfile = pgTable(
     profileImage: text("profileImage"),
     onboardingStep: integer("onboardingStep").default(0),
     onboardingComplete: boolean("onboardingComplete").default(false),
+    isActive: boolean("isActive").default(true).notNull(),
+    lastActive: timestamp("lastActive"),
+    preferences: jsonb("preferences"),
+    isVerified: boolean("isVerified").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
@@ -38,6 +43,9 @@ export const usersProfile = pgTable(
       emailIdx: index("idx_users_email").on(table.email),
       mobileIdx: index("idx_users_mobile").on(table.mobile),
       roleIdx: index("idx_users_role").on(table.role),
+      isActiveIdx: index("idx_users_is_active").on(table.isActive),
+      lastActiveIdx: index("idx_users_last_active").on(table.lastActive),
+      isVerifiedIdx: index("idx_users_is_verified").on(table.isVerified),
     },
   ]
 );

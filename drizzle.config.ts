@@ -9,4 +9,5 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
+  extensionsFilters: ["postgis"], // Ignore PostGIS metadata tables
 });
