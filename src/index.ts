@@ -9,6 +9,11 @@ import adminEventRoutes from "./events/admin/admin.routes";
 import studentEventRoutes from "./events/student/student.routes";
 import paymentRoutes from "./events/shared/payment.routes";
 import studentInteractionsRoutes from "./interactions/student/student.routes";
+import adminUserRoutes from "./users/admin/admin.routes";
+import studentEducationRoutes from "./users/student/education/student.routes";
+import studentExperienceRoutes from "./users/student/experience/student.routes";
+import studentUsernameRoutes from "./users/student/username/student.routes";
+import studentProfileRoutes from "./users/student/profile/student.routes";
 import { env, validateEnv } from "./config/env.config";
 import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
 
@@ -104,6 +109,18 @@ app.use(
           name: "Student - Interactions",
           description: "Like and bookmark events and quizzes",
         },
+        {
+          name: "Admin - Users",
+          description: "Manage and view users for admin dashboard",
+        },
+        {
+          name: "Student - Education",
+          description: "Manage education records for student profile",
+        },
+        {
+          name: "Student - Experience",
+          description: "Manage work experience records for student profile",
+        },
       ],
       components: {
         securitySchemes: {
@@ -167,6 +184,11 @@ app.group("/api", (app) =>
     .use(studentEventRoutes)
     .use(paymentRoutes)
     .use(studentInteractionsRoutes)
+    .use(adminUserRoutes)
+    .use(studentEducationRoutes)
+    .use(studentExperienceRoutes)
+    .use(studentUsernameRoutes)
+    .use(studentProfileRoutes)
 );
 
 // Handle favicon requests silently (browsers auto-request this)

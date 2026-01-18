@@ -20,10 +20,10 @@ export const usersProfile = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     fullName: text("fullName"),
+    username: text("username").unique(),
     email: text("email").unique(), // ✅ Optional (can be null)
     emailVerified: boolean("emailVerified").default(false),
     aboutMe: text("aboutMe"),
-    location: text("location"),
     birthday: date("birthday"),
     gender: genderEnum("gender"),
     mobile: text("mobile").unique().notNull(),
@@ -41,6 +41,7 @@ export const usersProfile = pgTable(
   (table) => [
     {
       emailIdx: index("idx_users_email").on(table.email),
+      usernameIdx: index("idx_users_username").on(table.username),
       mobileIdx: index("idx_users_mobile").on(table.mobile),
       roleIdx: index("idx_users_role").on(table.role),
       isActiveIdx: index("idx_users_is_active").on(table.isActive),
