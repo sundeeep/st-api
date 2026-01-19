@@ -2,20 +2,38 @@ import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { testConnection } from "./db";
 import { swagger } from "@elysiajs/swagger";
+import { env, validateEnv } from "./config/env.config";
+import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
+
+// Core/Foundation
 import authRoutes from "./auth/auth.routes";
+
+// Quiz Feature
 import adminQuizRoutes from "./quiz/admin/admin.routes";
 import studentQuizRoutes from "./quiz/student/student.routes";
+
+// Events Feature
 import adminEventRoutes from "./events/admin/admin.routes";
 import studentEventRoutes from "./events/student/student.routes";
 import paymentRoutes from "./events/shared/payment.routes";
-import studentInteractionsRoutes from "./interactions/student/student.routes";
+
+// Users/Profile Feature
 import adminUserRoutes from "./users/admin/admin.routes";
+import studentProfileRoutes from "./users/student/profile/student.routes";
 import studentEducationRoutes from "./users/student/education/student.routes";
 import studentExperienceRoutes from "./users/student/experience/student.routes";
 import studentUsernameRoutes from "./users/student/username/student.routes";
-import studentProfileRoutes from "./users/student/profile/student.routes";
-import { env, validateEnv } from "./config/env.config";
-import { globalErrorHandler } from "./middlewares/errorHandler.middleware";
+
+// Opportunities Feature
+import adminCompanyRoutes from "./opportunities/admin/admin.routes";
+import studentOpportunityRoutes from "./opportunities/student/student.routes";
+
+// Articles Feature
+import adminArticleRoutes from "./articles/admin/admin.routes";
+import studentArticleRoutes from "./articles/student/student.routes";
+
+// Interactions Feature
+import studentInteractionsRoutes from "./interactions/student/student.routes";
 
 // Validate environment variables
 validateEnv();
@@ -33,10 +51,31 @@ app.use(
         description: "Student Tribe API - Authentication, Quiz & Event Management System",
       },
       tags: [
+        // 1. Core/Foundation - Authentication (login first)
         {
           name: "Authentication",
           description: "OTP-based mobile authentication with JWT + Redis sessions",
         },
+        
+        // 2. Users/Profile Feature - Onboarding & Profile Management (students set up profile after login)
+        {
+          name: "Admin - Users",
+          description: "Manage and view users for admin dashboard",
+        },
+        {
+          name: "Student - Profile",
+          description: "Manage student profile information",
+        },
+        {
+          name: "Student - Education",
+          description: "Manage education records for student profile",
+        },
+        {
+          name: "Student - Experience",
+          description: "Manage work experience records for student profile",
+        },
+        
+        // 3. Quiz Feature
         {
           name: "Admin - Quiz Categories",
           description: "Manage quiz categories",
@@ -65,6 +104,8 @@ app.use(
           name: "Student - Leaderboard",
           description: "View quiz rankings and scores",
         },
+        
+        // 4. Events Feature
         {
           name: "Admin - Event Categories",
           description: "Manage event categories",
@@ -105,21 +146,43 @@ app.use(
           name: "Payments",
           description: "Payment webhooks and order expiry management",
         },
+        
+        // 5. Opportunities Feature
+        {
+          name: "Admin - Companies",
+          description: "Manage companies that post opportunities",
+        },
+        {
+          name: "Admin - Opportunities",
+          description: "Create and manage internship and full-time opportunities",
+        },
+        {
+          name: "Admin - Opportunity Questions",
+          description: "Manage custom questions for opportunity applications",
+        },
+        {
+          name: "Admin - Opportunity Applications",
+          description: "View and manage student applications for opportunities",
+        },
+        {
+          name: "Student - Opportunities",
+          description: "Browse opportunities and manage applications",
+        },
+        
+        // 6. Articles Feature
+        {
+          name: "Admin - Articles",
+          description: "Create and manage articles with rich JSONB content",
+        },
+        {
+          name: "Student - Articles",
+          description: "Browse and view published articles",
+        },
+        
+        // 7. Interactions Feature
         {
           name: "Student - Interactions",
-          description: "Like and bookmark events and quizzes",
-        },
-        {
-          name: "Admin - Users",
-          description: "Manage and view users for admin dashboard",
-        },
-        {
-          name: "Student - Education",
-          description: "Manage education records for student profile",
-        },
-        {
-          name: "Student - Experience",
-          description: "Manage work experience records for student profile",
+          description: "Like and bookmark events, quizzes, and articles",
         },
       ],
       components: {
@@ -174,21 +237,38 @@ app.get("/debug-ip", async () => {
   }
 });
 
-// API routes
+// API routes 
 app.group("/api", (app) =>
   app
+    // 1. Core/Foundation - Authentication
     .use(authRoutes)
-    .use(adminQuizRoutes)
-    .use(studentQuizRoutes)
-    .use(adminEventRoutes)
-    .use(studentEventRoutes)
-    .use(paymentRoutes)
-    .use(studentInteractionsRoutes)
+    
+    // 2. Users/Profile Feature - Onboarding & Profile Management
     .use(adminUserRoutes)
+    .use(studentProfileRoutes)
     .use(studentEducationRoutes)
     .use(studentExperienceRoutes)
     .use(studentUsernameRoutes)
-    .use(studentProfileRoutes)
+    
+    // 3. Quiz Feature
+    .use(adminQuizRoutes)
+    .use(studentQuizRoutes)
+    
+    // 4. Events Feature
+    .use(adminEventRoutes)
+    .use(studentEventRoutes)
+    .use(paymentRoutes) // Payment is related to events
+    
+    // 5. Opportunities Feature
+    .use(adminCompanyRoutes)
+    .use(studentOpportunityRoutes)
+    
+    // 6. Articles Feature
+    .use(adminArticleRoutes)
+    .use(studentArticleRoutes)
+    
+      // 7. Interactions Feature
+    .use(studentInteractionsRoutes)
 );
 
 // Handle favicon requests silently (browsers auto-request this)
