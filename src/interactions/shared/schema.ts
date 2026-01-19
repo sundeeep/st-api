@@ -2,7 +2,7 @@ import { usersProfile } from "../../auth/auth.schema";
 import { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { pgTable, uuid, timestamp, index, pgEnum, unique } from "drizzle-orm/pg-core";
 
-export const contentTypeEnum = pgEnum("content_type", ["event", "quiz"]);
+export const contentTypeEnum = pgEnum("content_type", ["event", "quiz", "article"]);
 
 export const likes = pgTable(
   "likes",
@@ -71,7 +71,7 @@ export const bookmarks = pgTable(
   ]
 );
 
-export type ContentType = "event" | "quiz";
+export type ContentType = "event" | "quiz" | "article";
 
 export type Like = InferSelectModel<typeof likes>;
 export type NewLike = InferInsertModel<typeof likes>;

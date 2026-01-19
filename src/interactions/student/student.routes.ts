@@ -11,13 +11,13 @@ const studentInteractionsRoutes = new Elysia({ prefix: "/student/interactions" }
     },
     {
       params: t.Object({
-        targetType: t.Union([t.Literal("event"), t.Literal("quiz")]),
+        targetType: t.Union([t.Literal("event"), t.Literal("quiz"), t.Literal("article")]),
         targetId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Student - Interactions"],
         summary: "Like content",
-        description: "Like an event or quiz",
+        description: "Like an event, quiz, or article",
         security: [{ BearerAuth: [] }],
       },
     }
@@ -30,13 +30,13 @@ const studentInteractionsRoutes = new Elysia({ prefix: "/student/interactions" }
     },
     {
       params: t.Object({
-        targetType: t.Union([t.Literal("event"), t.Literal("quiz")]),
+        targetType: t.Union([t.Literal("event"), t.Literal("quiz"), t.Literal("article")]),
         targetId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Student - Interactions"],
         summary: "Unlike content",
-        description: "Remove like from an event or quiz",
+        description: "Remove like from an event, quiz, or article",
         security: [{ BearerAuth: [] }],
       },
     }
@@ -49,13 +49,13 @@ const studentInteractionsRoutes = new Elysia({ prefix: "/student/interactions" }
     },
     {
       params: t.Object({
-        targetType: t.Union([t.Literal("event"), t.Literal("quiz")]),
+        targetType: t.Union([t.Literal("event"), t.Literal("quiz"), t.Literal("article")]),
         targetId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Student - Interactions"],
         summary: "Bookmark content",
-        description: "Bookmark an event or quiz",
+        description: "Bookmark an event, quiz, or article",
         security: [{ BearerAuth: [] }],
       },
     }
@@ -68,13 +68,35 @@ const studentInteractionsRoutes = new Elysia({ prefix: "/student/interactions" }
     },
     {
       params: t.Object({
-        targetType: t.Union([t.Literal("event"), t.Literal("quiz")]),
+        targetType: t.Union([t.Literal("event"), t.Literal("quiz"), t.Literal("article")]),
         targetId: t.String({ format: "uuid" }),
       }),
       detail: {
         tags: ["Student - Interactions"],
         summary: "Unbookmark content",
-        description: "Remove bookmark from an event or quiz",
+        description: "Remove bookmark from an event, quiz, or article",
+        security: [{ BearerAuth: [] }],
+      },
+    }
+  )
+  .get(
+    "/bookmarks",
+    async (context) => {
+      const authContext = await authenticate(context);
+      return interactionsController.getBookmarkedContentHandler(authContext);
+    },
+    {
+      query: t.Object({
+        contentType: t.Optional(
+          t.Union([t.Literal("event"), t.Literal("quiz"), t.Literal("article")])
+        ),
+        page: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
+      }),
+      detail: {
+        tags: ["Student - Interactions"],
+        summary: "Get bookmarked content",
+        description: "Get all bookmarked items (events, quizzes, articles) with full details. Optionally filter by contentType.",
         security: [{ BearerAuth: [] }],
       },
     }

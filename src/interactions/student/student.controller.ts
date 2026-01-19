@@ -1,5 +1,5 @@
 import type { AuthenticatedContext } from "../../auth/auth.types";
-import { successResponse } from "../../utils/response.util";
+import { successResponse, paginatedResponse } from "../../utils/response.util";
 import * as interactionsService from "../shared/interactions.service";
 import type { ContentType } from "../shared/schema";
 
@@ -45,4 +45,33 @@ export const unbookmarkContentHandler = async (context: AuthenticatedContext) =>
 
   await interactionsService.unbookmarkContent(userId, targetType, targetId);
   return successResponse(undefined, "Content unbookmarked successfully");
+};
+
+export const getBookmarkedContentHandler = async (
+  context: AuthenticatedContext
+) => {
+  const query = context.query as {
+    contentType?: ContentType;
+    page?: string;
+    limit?: string;
+  };
+  const userId = context.user.id;
+
+  const result = await interactionsService.getBookmarkedContent(
+    userId,
+    query.contentType,
+    query.page,
+    query.limit
+  );
+
+  const page = parseInt(query.page || "1");
+  const limit = parseInt(query.limit || "10");
+
+  return paginatedResponse(
+    result.items,
+    page,
+    limit,
+    result.total,
+    "Bookmarked content fetched successfully"
+  );
 };
