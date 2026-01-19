@@ -28,6 +28,7 @@ export interface EventListItem {
   minPrice: number;
   maxPrice: number;
   status: "draft" | "published" | "cancelled" | "completed";
+  contentType: "event";
   likeCount: number;
   isLiked?: boolean;
   isBookmarked?: boolean;
@@ -50,6 +51,7 @@ export interface EventDetail {
   bookedCount: number;
   status: "draft" | "published" | "cancelled" | "completed";
   ticketCategories: TicketCategoryDetail[];
+  contentType: "event";
   likeCount: number;
   isLiked?: boolean;
   isBookmarked?: boolean;
