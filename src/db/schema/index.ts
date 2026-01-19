@@ -19,3 +19,5 @@ export * from "../../events/shared/schema";
 export * from "../../auth/auth.schema";
 export * from "../../interactions/shared/schema";
 export * from "../../users/shared/schema";
+export * from "../../opportunities/shared/schema";
+export * from "../../articles/shared/schema";
