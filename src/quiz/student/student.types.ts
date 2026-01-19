@@ -41,6 +41,7 @@ export interface QuizListItem {
   startDateTime?: string;
   endDateTime?: string;
   rewards?: Reward[];
+  contentType: "quiz";
   likeCount: number;
   isLiked: boolean;
   isBookmarked: boolean;
@@ -77,6 +78,7 @@ export interface QuizDetails {
   lastAttemptId?: string;
   myRank?: number;
   attemptStatus: "not_started" | "in_progress" | "completed" | "max_attempts_reached";
+  contentType: "quiz";
   likeCount: number;
   isLiked: boolean;
   isBookmarked: boolean;

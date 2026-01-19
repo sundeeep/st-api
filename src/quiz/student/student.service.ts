@@ -110,6 +110,7 @@ export async function browseQuizzes(
           ? JSON.parse(q.rewards)
           : q.rewards
         : undefined,
+      contentType: "quiz",
       likeCount: q.likeCount || 0,
       isLiked: likedSet.has(q.id),
       isBookmarked: bookmarkedSet.has(q.id),
@@ -207,7 +208,7 @@ export async function getFeaturedQuizzes(
   const likedSet = new Set(interactions.liked);
   const bookmarkedSet = new Set(interactions.bookmarked);
 
-  const mapNormalQuiz = (q: (typeof normalList)[0]) => ({
+  const mapNormalQuiz = (q: (typeof normalList)[0]): QuizListItem => ({
     id: q.id,
     quizName: q.quizName,
     quizType: q.quizType,
@@ -222,6 +223,7 @@ export async function getFeaturedQuizzes(
         ? JSON.parse(q.rewards)
         : q.rewards
       : undefined,
+    contentType: "quiz" as const,
     likeCount: q.likeCount || 0,
     isLiked: likedSet.has(q.id),
     isBookmarked: bookmarkedSet.has(q.id),
@@ -397,6 +399,7 @@ export async function getQuizDetails(quizId: string, userId: string): Promise<Qu
     createdAt: q.createdAt.toISOString(),
     hasAttempted: completedAttempts.length > 0,
     myBestScore: completedAttempts[0]?.score ? Number(completedAttempts[0].score) : undefined,
+    contentType: "quiz",
     lastAttemptId: lastAttemptId,
     myRank: myRank,
     attemptStatus,
